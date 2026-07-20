@@ -55,3 +55,12 @@ export enum AssignmentStatus {
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
 }
+
+// Valid forward transitions for an Assignment's status. COMPLETED is terminal — once a
+// leg is marked done, it's not reopened. Enforce this map server-side when updating
+// status, same as VALID_STATUS_TRANSITIONS above.
+export const VALID_ASSIGNMENT_TRANSITIONS: Record<AssignmentStatus, AssignmentStatus[]> = {
+  [AssignmentStatus.PENDING]: [AssignmentStatus.IN_PROGRESS, AssignmentStatus.COMPLETED],
+  [AssignmentStatus.IN_PROGRESS]: [AssignmentStatus.COMPLETED],
+  [AssignmentStatus.COMPLETED]: [],
+};

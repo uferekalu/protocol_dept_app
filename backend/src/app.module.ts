@@ -9,10 +9,11 @@ import { EventsModule } from './modules/events/events.module';
 import { ProtocolMembersModule } from './modules/protocol-members/protocol-members.module';
 import { StatusLogsModule } from './modules/status-logs/status-logs.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
+import { AssignmentsModule } from './modules/assignments/assignments.module';
 
-// NOTE for Claude Code: as each remaining feature module (assignments, auth) is built
-// per the phased plan in docs/PROTOCOL_APP_BRIEF.md, import and register it here. The
-// folders already exist under src/modules/ as placeholders.
+// NOTE for Claude Code: auth is the last remaining feature module (Phase 5), per the
+// phased plan in docs/PROTOCOL_APP_BRIEF.md. The folder already exists under
+// src/modules/ as a placeholder.
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -30,6 +31,7 @@ import { InvitationsModule } from './modules/invitations/invitations.module';
     ProtocolMembersModule,
     StatusLogsModule,
     InvitationsModule,
+    AssignmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
