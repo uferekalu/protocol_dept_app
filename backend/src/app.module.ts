@@ -5,8 +5,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import configuration from './config/configuration';
 import { MinistersModule } from './modules/ministers/ministers.module';
+import { EventsModule } from './modules/events/events.module';
 
-// NOTE for Claude Code: as each remaining feature module (events, invitations,
+// NOTE for Claude Code: as each remaining feature module (invitations,
 // protocol-members, assignments, status-logs, auth) is built per the phased plan in
 // docs/PROTOCOL_APP_BRIEF.md, import and register it here. The folders already exist
 // under src/modules/ as placeholders.
@@ -23,6 +24,7 @@ import { MinistersModule } from './modules/ministers/ministers.module';
       }),
     }),
     MinistersModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
