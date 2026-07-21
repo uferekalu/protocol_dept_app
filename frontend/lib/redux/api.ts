@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { PopulatedInvitation, UpdateInvitationStatusInput } from '@/lib/types/invitation';
 import type { ProtocolMember } from '@/lib/types/protocol-member';
 import type { Assignment } from '@/lib/types/assignment';
+import type { CreateMinisterInput, Minister, UpdateMinisterInput } from '@/lib/types/minister';
 
 // Single RTK Query API slice for all server state, per frontend/CLAUDE.md — "pick RTK
 // Query and use it consistently," not a mix of ad hoc fetches. Endpoints are added
@@ -17,8 +18,57 @@ export const api = createApi({
   // store.ts, which is what actually wires up the browser events.
   refetchOnFocus: true,
   refetchOnReconnect: true,
-  tagTypes: ['Invitation', 'ProtocolMember', 'Assignment'],
+  tagTypes: ['Invitation', 'ProtocolMember', 'Assignment', 'Minister'],
   endpoints: (builder) => ({
+    getMinisters: builder.query<Minister[], void>({
+      query: () => '/ministers',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((minister) => ({ type: 'Minister' as const, id: minister._id })),
+              { type: 'Minister' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Minister' as const, id: 'LIST' }],
+    }),
+
+    getMinister: builder.query<Minister, string>({
+      query: (id) => `/ministers/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'Minister', id }],
+    }),
+
+    createMinister: builder.mutation<Minister, CreateMinisterInput>({
+      query: (body) => ({ url: '/ministers', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Minister', id: 'LIST' }],
+    }),
+
+    updateMinister: builder.mutation<Minister, { id: string } & UpdateMinisterInput>({
+      query: ({ id, ...body }) => ({ url: `/ministers/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Minister', id },
+        { type: 'Minister', id: 'LIST' },
+      ],
+    }),
+
+    deleteMinister: builder.mutation<void, string>({
+      query: (id) => ({ url: `/ministers/${id}`, method: 'DELETE' }),
+      // Only the LIST tag, deliberately — the resource is gone, so invalidating its
+      // own id tag just triggers a doomed refetch (404) from whichever component was
+      // still displaying it in the instant before navigating away.
+      invalidatesTags: [{ type: 'Minister', id: 'LIST' }],
+    }),
+
+    // Powers the Minister Profile screen's invitation-history section.
+    getInvitationsByMinister: builder.query<PopulatedInvitation[], string>({
+      query: (ministerId) => `/invitations?minister_id=${ministerId}`,
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((invitation) => ({ type: 'Invitation' as const, id: invitation._id })),
+              { type: 'Invitation' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Invitation' as const, id: 'LIST' }],
+    }),
+
     getCurrentlyHosting: builder.query<PopulatedInvitation[], void>({
       query: () => '/invitations/currently-hosting',
       providesTags: (result) =>
@@ -61,6 +111,12 @@ export const api = createApi({
 });
 
 export const {
+  useGetMinistersQuery,
+  useGetMinisterQuery,
+  useCreateMinisterMutation,
+  useUpdateMinisterMutation,
+  useDeleteMinisterMutation,
+  useGetInvitationsByMinisterQuery,
   useGetCurrentlyHostingQuery,
   useUpdateInvitationStatusMutation,
   useGetProtocolMembersQuery,
