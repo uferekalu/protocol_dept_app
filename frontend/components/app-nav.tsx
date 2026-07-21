@@ -4,13 +4,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-// Grows as more screens land (Events, Invitations, Assignments, Calendar, Reports).
-// A horizontally-scrolling tab row rather than a hamburger drawer — simple, and holds
-// up fine as more links get added, without building a mobile drawer for what's
-// currently two items.
+// Grows as more screens land (Events, Calendar, Reports). A horizontally-scrolling tab
+// row rather than a hamburger drawer — simple, and holds up fine as more links get
+// added, without building a mobile drawer. Invitations has no top-level tab by design —
+// it's reached through a minister's profile, not browsed independently.
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard' },
   { href: '/ministers', label: 'Ministers' },
+  { href: '/assignments', label: 'Assignments' },
+  { href: '/my-assignments', label: 'My Assignments' },
 ];
 
 export function AppNav() {
