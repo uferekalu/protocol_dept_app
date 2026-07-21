@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiConflictResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { InvitationsService } from './invitations.service';
@@ -32,9 +33,9 @@ export class InvitationsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all invitations' })
-  findAll() {
-    return this.invitationsService.findAll();
+  @ApiOperation({ summary: 'List all invitations, optionally filtered by minister' })
+  findAll(@Query('minister_id') ministerId?: string) {
+    return this.invitationsService.findAll(ministerId);
   }
 
   @Get('currently-hosting')

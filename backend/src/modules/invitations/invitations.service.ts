@@ -80,9 +80,15 @@ export class InvitationsService {
   // endpoints exist to be displayed (list screens, the dashboard), unlike findOne()
   // below, which stays unpopulated because other services rely on it for raw-ObjectId
   // comparisons (see update()'s conflict check, AssignmentsService, etc.).
-  findAll(): Promise<InvitationDocument[]> {
+  //
+  // Optional ministerId filter powers the Minister Profile screen's invitation
+  // history (brief Section 5) — a query param on the existing collection endpoint,
+  // not a nested route, since MinistersModule can't depend on InvitationsModule
+  // without a circular dependency (same reasoning as the Assignments module's nested
+  // controllers).
+  findAll(ministerId?: string): Promise<InvitationDocument[]> {
     return this.invitationModel
-      .find()
+      .find(ministerId ? { minister_id: ministerId } : {})
       .populate('minister_id')
       .populate('event_id')
       .sort({ arrival_date: -1 })

@@ -169,8 +169,16 @@ describe('InvitationsService', () => {
 
     const result = await service.findAll();
 
-    expect(model.find).toHaveBeenCalledWith();
+    expect(model.find).toHaveBeenCalledWith({});
     expect(result).toEqual([mockInvitation]);
+  });
+
+  it('filters invitations by minister_id when provided', async () => {
+    model.find.mockReturnValue(makeQuery([mockInvitation]));
+
+    await service.findAll('minister-1');
+
+    expect(model.find).toHaveBeenCalledWith({ minister_id: 'minister-1' });
   });
 
   it('finds currently-hosting invitations (status not DEPARTED_TRIP_COMPLETED)', async () => {
