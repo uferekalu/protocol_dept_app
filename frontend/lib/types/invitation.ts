@@ -1,3 +1,6 @@
+import type { Minister } from './minister';
+import type { Event } from './event';
+
 // Mirrors backend/src/common/enums.ts (InvitationStatus) and
 // backend/src/modules/invitations/schemas/invitation.schema.ts + its DTOs.
 export type InvitationStatus =
@@ -26,6 +29,15 @@ export interface Invitation {
   createdAt: string;
   updatedAt: string;
 }
+
+// GET /invitations and GET /invitations/currently-hosting populate minister_id/
+// event_id with the full nested document instead of a raw id — every other
+// invitation endpoint (create/update/single-GET/status) returns the plain Invitation
+// shape above with string ids.
+export type PopulatedInvitation = Omit<Invitation, 'minister_id' | 'event_id'> & {
+  minister_id: Minister;
+  event_id: Event;
+};
 
 export interface CreateInvitationInput {
   minister_id: string;

@@ -28,6 +28,7 @@ const mockInvitation = {
 
 function makeQuery(result: unknown) {
   return {
+    populate: jest.fn().mockReturnThis(),
     sort: jest.fn().mockReturnThis(),
     exec: jest.fn().mockResolvedValue(result),
   };
