@@ -45,7 +45,7 @@ export function ActingAsPicker() {
     <div className="flex items-center gap-2">
       <span className="text-label hidden text-muted-foreground sm:inline">Acting as</span>
       <Select value={actingAsId} onValueChange={handleChange} disabled={isLoading}>
-        <SelectTrigger size="sm" className="min-w-36">
+        <SelectTrigger size="sm" className="w-28 sm:w-auto sm:min-w-36">
           {/* Base UI's SelectValue falls back to the raw value if it can't resolve a
               label itself (e.g. on localStorage-hydrated initial state) — resolve the
               display name explicitly from the already-fetched member list instead of

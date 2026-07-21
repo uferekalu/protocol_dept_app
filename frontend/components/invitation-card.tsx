@@ -96,13 +96,17 @@ export function InvitationCard({ invitation }: { invitation: PopulatedInvitation
         </p>
 
         {nextStatuses.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          // Full-width, stacked — not side-by-side flex-wrap — per frontend/CLAUDE.md's
+          // "big, unambiguous primary actions" and mobile-first status-update UX. h-11
+          // (44px) is a real touch target, still a plain Tailwind spacing-scale value.
+          <div className="flex flex-col gap-2">
             {nextStatuses.map((next) => (
               <Button
                 key={next}
+                size="lg"
                 onClick={() => handleAdvance(next)}
                 disabled={isUpdating || !actingAsId}
-                className="flex-1"
+                className="h-11 text-body font-semibold"
               >
                 {STATUS_ACTION_LABELS[next]}
               </Button>
