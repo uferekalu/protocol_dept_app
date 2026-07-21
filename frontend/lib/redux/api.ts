@@ -7,7 +7,12 @@ import type {
   UpdateInvitationStatusInput,
 } from '@/lib/types/invitation';
 import type { ProtocolMember } from '@/lib/types/protocol-member';
-import type { Assignment } from '@/lib/types/assignment';
+import type {
+  Assignment,
+  CreateAssignmentInput,
+  UpdateAssignmentInput,
+  UpdateAssignmentStatusInput,
+} from '@/lib/types/assignment';
 import type { CreateMinisterInput, Minister, UpdateMinisterInput } from '@/lib/types/minister';
 import type { Event } from '@/lib/types/event';
 import type { StatusLog } from '@/lib/types/status-log';
@@ -151,6 +156,72 @@ export const api = createApi({
       ],
     }),
 
+    // Powers "My Assignments" — a protocol member's personal task list.
+    getAssignmentsByProtocolMember: builder.query<Assignment[], string>({
+      query: (protocolMemberId) => `/protocol-members/${protocolMemberId}/assignments`,
+      providesTags: (result, _error, protocolMemberId) => [
+        { type: 'Assignment' as const, id: `member-${protocolMemberId}` },
+        ...(result ?? []).map((a) => ({ type: 'Assignment' as const, id: a._id })),
+      ],
+    }),
+
+    createAssignment: builder.mutation<Assignment, CreateAssignmentInput>({
+      query: (body) => ({ url: '/assignments', method: 'POST', body }),
+      invalidatesTags: (result) =>
+        result
+          ? [
+              { type: 'Assignment', id: `invitation-${result.invitation_id}` },
+              { type: 'Assignment', id: `member-${result.protocol_member_id}` },
+            ]
+          : [],
+    }),
+
+    updateAssignment: builder.mutation<Assignment, { id: string } & UpdateAssignmentInput>({
+      query: ({ id, ...body }) => ({ url: `/assignments/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (result, _error, { id }) => [
+        { type: 'Assignment', id },
+        ...(result
+          ? [
+              { type: 'Assignment' as const, id: `invitation-${result.invitation_id}` },
+              { type: 'Assignment' as const, id: `member-${result.protocol_member_id}` },
+            ]
+          : []),
+      ],
+    }),
+
+    // Guarded PENDING -> IN_PROGRESS -> COMPLETED transition, mirrors
+    // updateInvitationStatus — the backend rejects anything not in
+    // VALID_ASSIGNMENT_TRANSITIONS.
+    updateAssignmentStatus: builder.mutation<
+      Assignment,
+      { id: string } & UpdateAssignmentStatusInput
+    >({
+      query: ({ id, ...body }) => ({ url: `/assignments/${id}/status`, method: 'PATCH', body }),
+      invalidatesTags: (result, _error, { id }) => [
+        { type: 'Assignment', id },
+        ...(result
+          ? [
+              { type: 'Assignment' as const, id: `invitation-${result.invitation_id}` },
+              { type: 'Assignment' as const, id: `member-${result.protocol_member_id}` },
+            ]
+          : []),
+      ],
+    }),
+
+    // invitationId/protocolMemberId travel alongside id purely so their scoped list
+    // caches can be invalidated precisely — DELETE returns no body to derive them from.
+    deleteAssignment: builder.mutation<
+      void,
+      { id: string; invitationId: string; protocolMemberId: string }
+    >({
+      query: ({ id }) => ({ url: `/assignments/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, { id, invitationId, protocolMemberId }) => [
+        { type: 'Assignment', id },
+        { type: 'Assignment', id: `invitation-${invitationId}` },
+        { type: 'Assignment', id: `member-${protocolMemberId}` },
+      ],
+    }),
+
     // No Events screens yet (frontend/CLAUDE.md's screen order builds those later) —
     // this list only feeds the event picker on the Invitation create/edit form. Events
     // are created via Swagger (/api/docs) in the meantime.
@@ -188,6 +259,11 @@ export const {
   useUpdateInvitationStatusMutation,
   useGetProtocolMembersQuery,
   useGetAssignmentsByInvitationQuery,
+  useGetAssignmentsByProtocolMemberQuery,
+  useCreateAssignmentMutation,
+  useUpdateAssignmentMutation,
+  useUpdateAssignmentStatusMutation,
+  useDeleteAssignmentMutation,
   useGetEventsQuery,
   useGetEventQuery,
 } = api;
