@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -22,6 +23,7 @@ const NAV_LINKS = [
   { href: '/ministers', label: 'Ministers', icon: UserRound },
   { href: '/assignments', label: 'Assignments', icon: ClipboardList },
   { href: '/my-assignments', label: 'My Assignments', icon: ListChecks },
+  { href: '/calendar', label: 'Calendar', icon: CalendarDays },
 ];
 
 const STORAGE_KEY = 'protocol-department:mobile-nav-expanded';
