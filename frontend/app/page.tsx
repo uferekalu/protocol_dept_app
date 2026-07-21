@@ -3,6 +3,7 @@
 import { Users, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useGetCurrentlyHostingQuery } from '@/lib/redux/api';
 import { InvitationCard } from '@/components/invitation-card';
+import { EmptyPanel, IconBadge } from '@/components/empty-panel';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -68,35 +69,6 @@ export default function Home() {
         </div>
       )}
     </main>
-  );
-}
-
-// Shared shell for the empty/error states: a soft brand-colored glow behind an icon
-// badge, rather than a bare gray icon on a blank box — this is the screen a
-// newly-set-up department sees most often, so it earns real visual treatment.
-function EmptyPanel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 relative overflow-hidden rounded-2xl border border-border bg-card py-16 text-center motion-safe:duration-500 sm:py-24">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute top-1/2 left-1/2 size-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-3xl"
-      />
-      <div className="relative flex flex-col items-center gap-4 px-6">{children}</div>
-    </div>
-  );
-}
-
-function IconBadge({ tone, children }: { tone: 'primary' | 'destructive'; children: React.ReactNode }) {
-  return (
-    <div
-      className={
-        tone === 'primary'
-          ? 'flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20'
-          : 'flex size-16 items-center justify-center rounded-2xl bg-destructive/10 text-destructive ring-1 ring-destructive/20'
-      }
-    >
-      {children}
-    </div>
   );
 }
 
