@@ -114,6 +114,31 @@ describe('ProtocolMembersService', () => {
     expect(result).toEqual(mockMember);
   });
 
+  describe('findByPhoneNumberWithPassword', () => {
+    it('opts back into password_hash via select, unlike every other query', async () => {
+      const select = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ ...mockMember, password_hash: 'hashed' }),
+      });
+      model.findOne.mockReturnValue({ select });
+
+      const result = await service.findByPhoneNumberWithPassword('+2348022223333');
+
+      expect(model.findOne).toHaveBeenCalledWith({ phone_number: '+2348022223333' });
+      expect(select).toHaveBeenCalledWith('+password_hash');
+      expect(result).toEqual({ ...mockMember, password_hash: 'hashed' });
+    });
+
+    it('returns null when no member matches', async () => {
+      model.findOne.mockReturnValue({
+        select: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(null) }),
+      });
+
+      const result = await service.findByPhoneNumberWithPassword('+2340000000000');
+
+      expect(result).toBeNull();
+    });
+  });
+
   it('throws NotFoundException when the member does not exist', async () => {
     model.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
 

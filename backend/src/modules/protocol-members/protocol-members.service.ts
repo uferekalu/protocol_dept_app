@@ -46,6 +46,16 @@ export class ProtocolMembersService {
     return this.protocolMemberModel.find().sort({ full_name: 1 }).exec();
   }
 
+  // Used only by AuthService.login() — the schema's `select: false` on password_hash
+  // keeps it out of every other query by default, so login is the one deliberate,
+  // narrow place that opts back in.
+  findByPhoneNumberWithPassword(phoneNumber: string): Promise<ProtocolMemberDocument | null> {
+    return this.protocolMemberModel
+      .findOne({ phone_number: phoneNumber })
+      .select('+password_hash')
+      .exec();
+  }
+
   async findOne(id: string): Promise<ProtocolMemberDocument> {
     const member = await this.protocolMemberModel.findById(id).exec();
     if (!member) {

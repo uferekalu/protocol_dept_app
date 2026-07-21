@@ -10,10 +10,11 @@ import { ProtocolMembersModule } from './modules/protocol-members/protocol-membe
 import { StatusLogsModule } from './modules/status-logs/status-logs.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
 import { AssignmentsModule } from './modules/assignments/assignments.module';
+import { AuthModule } from './modules/auth/auth.module';
 
-// NOTE for Claude Code: auth is the last remaining feature module (Phase 5), per the
-// phased plan in docs/PROTOCOL_APP_BRIEF.md. The folder already exists under
-// src/modules/ as a placeholder.
+// Auth (Phase 5) is staged across PRs to avoid breaking the currently-unauthenticated
+// frontend mid-phase: this PR wires up login/JWT infrastructure only — no existing
+// controller is guarded yet. See backend/CLAUDE.md.
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -32,6 +33,7 @@ import { AssignmentsModule } from './modules/assignments/assignments.module';
     StatusLogsModule,
     InvitationsModule,
     AssignmentsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
