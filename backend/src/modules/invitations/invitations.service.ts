@@ -76,8 +76,17 @@ export class InvitationsService {
     }
   }
 
+  // Populated with the full Minister/Event documents (not raw ids) — these two
+  // endpoints exist to be displayed (list screens, the dashboard), unlike findOne()
+  // below, which stays unpopulated because other services rely on it for raw-ObjectId
+  // comparisons (see update()'s conflict check, AssignmentsService, etc.).
   findAll(): Promise<InvitationDocument[]> {
-    return this.invitationModel.find().sort({ arrival_date: -1 }).exec();
+    return this.invitationModel
+      .find()
+      .populate('minister_id')
+      .populate('event_id')
+      .sort({ arrival_date: -1 })
+      .exec();
   }
 
   // Powers the "Currently Hosting" dashboard — any invitation not yet at the final
@@ -85,6 +94,8 @@ export class InvitationsService {
   findCurrentlyHosting(): Promise<InvitationDocument[]> {
     return this.invitationModel
       .find({ status: { $ne: InvitationStatus.DEPARTED_TRIP_COMPLETED } })
+      .populate('minister_id')
+      .populate('event_id')
       .sort({ arrival_date: 1 })
       .exec();
   }
