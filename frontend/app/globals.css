@@ -263,3 +263,15 @@
   font-weight: var(--text-caption-weight);
   line-height: var(--text-caption-leading);
 }
+
+/* Hides the OS-default scrollbar track/thumb on an internally-scrolling container
+   (e.g. a tall dialog on a short mobile viewport) without disabling scrolling itself —
+   content still scrolls via touch, trackpad, wheel, or keyboard. Used on DialogContent
+   so every dialog in the app gets this by default, not just one. */
+@utility scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
