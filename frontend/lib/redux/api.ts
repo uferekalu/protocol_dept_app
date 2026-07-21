@@ -1,8 +1,16 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { PopulatedInvitation, UpdateInvitationStatusInput } from '@/lib/types/invitation';
+import type {
+  CreateInvitationInput,
+  Invitation,
+  PopulatedInvitation,
+  UpdateInvitationInput,
+  UpdateInvitationStatusInput,
+} from '@/lib/types/invitation';
 import type { ProtocolMember } from '@/lib/types/protocol-member';
 import type { Assignment } from '@/lib/types/assignment';
 import type { CreateMinisterInput, Minister, UpdateMinisterInput } from '@/lib/types/minister';
+import type { Event } from '@/lib/types/event';
+import type { StatusLog } from '@/lib/types/status-log';
 
 // Single RTK Query API slice for all server state, per frontend/CLAUDE.md — "pick RTK
 // Query and use it consistently," not a mix of ad hoc fetches. Endpoints are added
@@ -18,7 +26,7 @@ export const api = createApi({
   // store.ts, which is what actually wires up the browser events.
   refetchOnFocus: true,
   refetchOnReconnect: true,
-  tagTypes: ['Invitation', 'ProtocolMember', 'Assignment', 'Minister'],
+  tagTypes: ['Invitation', 'ProtocolMember', 'Assignment', 'Minister', 'Event', 'StatusLog'],
   endpoints: (builder) => ({
     getMinisters: builder.query<Minister[], void>({
       query: () => '/ministers',
@@ -80,6 +88,40 @@ export const api = createApi({
           : [{ type: 'Invitation' as const, id: 'LIST' }],
     }),
 
+    // Raw ids (never populated) — feeds the create/edit form's default values and the
+    // Status Timeline page, which resolves minister/event display names itself via
+    // getMinister/getEvent rather than relying on a populated shape here.
+    getInvitation: builder.query<Invitation, string>({
+      query: (id) => `/invitations/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'Invitation', id }],
+    }),
+
+    createInvitation: builder.mutation<Invitation, CreateInvitationInput>({
+      query: (body) => ({ url: '/invitations', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Invitation', id: 'LIST' }],
+    }),
+
+    updateInvitation: builder.mutation<Invitation, { id: string } & UpdateInvitationInput>({
+      query: ({ id, ...body }) => ({ url: `/invitations/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Invitation', id },
+        { type: 'Invitation', id: 'LIST' },
+      ],
+    }),
+
+    deleteInvitation: builder.mutation<void, string>({
+      query: (id) => ({ url: `/invitations/${id}`, method: 'DELETE' }),
+      invalidatesTags: [{ type: 'Invitation', id: 'LIST' }],
+    }),
+
+    // Append-only per backend/CLAUDE.md — powers the Status Timeline screen.
+    getStatusLogsByInvitation: builder.query<StatusLog[], string>({
+      query: (invitationId) => `/invitations/${invitationId}/status-logs`,
+      providesTags: (_result, _error, invitationId) => [
+        { type: 'StatusLog' as const, id: `invitation-${invitationId}` },
+      ],
+    }),
+
     updateInvitationStatus: builder.mutation<
       PopulatedInvitation,
       { id: string } & UpdateInvitationStatusInput
@@ -92,6 +134,7 @@ export const api = createApi({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Invitation', id },
         { type: 'Invitation', id: 'LIST' },
+        { type: 'StatusLog', id: `invitation-${id}` },
       ],
     }),
 
@@ -107,6 +150,25 @@ export const api = createApi({
         ...(result ?? []).map((a) => ({ type: 'Assignment' as const, id: a._id })),
       ],
     }),
+
+    // No Events screens yet (frontend/CLAUDE.md's screen order builds those later) —
+    // this list only feeds the event picker on the Invitation create/edit form. Events
+    // are created via Swagger (/api/docs) in the meantime.
+    getEvents: builder.query<Event[], void>({
+      query: () => '/events',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((event) => ({ type: 'Event' as const, id: event._id })),
+              { type: 'Event' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Event' as const, id: 'LIST' }],
+    }),
+
+    getEvent: builder.query<Event, string>({
+      query: (id) => `/events/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'Event', id }],
+    }),
   }),
 });
 
@@ -118,7 +180,14 @@ export const {
   useDeleteMinisterMutation,
   useGetInvitationsByMinisterQuery,
   useGetCurrentlyHostingQuery,
+  useGetInvitationQuery,
+  useCreateInvitationMutation,
+  useUpdateInvitationMutation,
+  useDeleteInvitationMutation,
+  useGetStatusLogsByInvitationQuery,
   useUpdateInvitationStatusMutation,
   useGetProtocolMembersQuery,
   useGetAssignmentsByInvitationQuery,
+  useGetEventsQuery,
+  useGetEventQuery,
 } = api;
