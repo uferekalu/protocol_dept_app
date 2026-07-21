@@ -3,7 +3,17 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { AlertTriangle, ArrowLeft, Mail, MapPin, Pencil, Phone, Trash2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ChevronRight,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useDeleteMinisterMutation,
@@ -115,7 +125,18 @@ export default function MinisterProfilePage() {
             </div>
           </div>
 
-          <h2 className="text-heading-md mb-3 text-foreground">Invitation history</h2>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-heading-md text-foreground">Invitation history</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => router.push(`/invitations/new?minister_id=${ministerId}`)}
+            >
+              <Plus className="size-4" />
+              New Invitation
+            </Button>
+          </div>
 
           {invitationsLoading && <Skeleton className="h-20 w-full rounded-xl" />}
 
@@ -128,9 +149,10 @@ export default function MinisterProfilePage() {
           {!invitationsLoading && invitations && invitations.length > 0 && (
             <div className="flex flex-col gap-2">
               {invitations.map((invitation) => (
-                <div
+                <Link
                   key={invitation._id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card p-4"
+                  href={`/invitations/${invitation._id}`}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card p-4 hover:border-primary/40"
                 >
                   <div className="min-w-0">
                     <p className="text-body font-medium text-foreground">
@@ -141,10 +163,13 @@ export default function MinisterProfilePage() {
                       {new Date(invitation.departure_date).toLocaleDateString()}
                     </p>
                   </div>
-                  <span className="text-label shrink-0 rounded-full bg-primary/10 px-3 py-1 text-primary">
-                    {STATUS_LABELS[invitation.status]}
-                  </span>
-                </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-label rounded-full bg-primary/10 px-3 py-1 text-primary">
+                      {STATUS_LABELS[invitation.status]}
+                    </span>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </div>
+                </Link>
               ))}
             </div>
           )}
