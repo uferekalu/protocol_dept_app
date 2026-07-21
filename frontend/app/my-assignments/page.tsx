@@ -1,9 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
+import Link from 'next/link';
 import { skipToken } from '@reduxjs/toolkit/query/react';
 import { AlertTriangle, ClipboardList, RefreshCw, UserRound } from 'lucide-react';
-import { useAppSelector } from '@/lib/redux/hooks';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { useGetAssignmentsByProtocolMemberQuery, useGetCurrentlyHostingQuery } from '@/lib/redux/api';
 import { AssignmentStatusActions } from '@/components/assignment-status-actions';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
@@ -14,19 +15,19 @@ import type { Assignment } from '@/lib/types/assignment';
 import type { PopulatedInvitation } from '@/lib/types/invitation';
 
 // My Assignments — brief Section 5 (screen 6) / frontend/CLAUDE.md's screen order,
-// step 6: a personal task list scoped to whichever protocol member is "acting as"
-// (the header picker — a stand-in for real login until Phase 5 auth exists, same as
-// InvitationCard's status-update flow). Mobile-first and large touch targets per
-// frontend/CLAUDE.md's UX bar for field-use screens.
+// step 6: a personal task list scoped to the logged-in protocol member (Phase 5 login,
+// replacing the old "Acting as" header picker — same as InvitationCard's status-update
+// flow). Mobile-first and large touch targets per frontend/CLAUDE.md's UX bar for
+// field-use screens.
 export default function MyAssignmentsPage() {
-  const actingAsId = useAppSelector((state) => state.session.actingAsId);
+  const { data: currentUser, isLoading: isLoadingUser } = useCurrentUser();
   const {
     data: assignments,
-    isLoading,
+    isLoading: isLoadingAssignments,
     isError,
     error,
     refetch,
-  } = useGetAssignmentsByProtocolMemberQuery(actingAsId ?? skipToken);
+  } = useGetAssignmentsByProtocolMemberQuery(currentUser?._id ?? skipToken);
   const { data: invitations } = useGetCurrentlyHostingQuery();
 
   const invitationById = useMemo(() => {
@@ -45,27 +46,36 @@ export default function MyAssignmentsPage() {
         Your assigned legs across every minister currently being hosted.
       </p>
 
-      {!actingAsId && (
-        <EmptyPanel>
-          <IconBadge tone="primary">
-            <UserRound className="size-7" />
-          </IconBadge>
-          <p className="text-heading-md text-foreground">Who are you?</p>
-          <p className="text-body-sm max-w-sm text-muted-foreground">
-            Select yourself with the &quot;Acting as&quot; picker in the header to see
-            your assignments.
-          </p>
-        </EmptyPanel>
-      )}
-
-      {actingAsId && isLoading && (
+      {isLoadingUser && (
         <div className="flex flex-col gap-2">
           <Skeleton className="h-24 w-full rounded-xl" />
           <Skeleton className="h-24 w-full rounded-xl" />
         </div>
       )}
 
-      {actingAsId && isError && (
+      {!isLoadingUser && !currentUser && (
+        <EmptyPanel>
+          <IconBadge tone="primary">
+            <UserRound className="size-7" />
+          </IconBadge>
+          <p className="text-heading-md text-foreground">You&apos;re not logged in</p>
+          <p className="text-body-sm max-w-sm text-muted-foreground">
+            <Link href="/login" className="text-primary hover:underline">
+              Log in
+            </Link>{' '}
+            to see your assignments.
+          </p>
+        </EmptyPanel>
+      )}
+
+      {currentUser && isLoadingAssignments && (
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-24 w-full rounded-xl" />
+        </div>
+      )}
+
+      {currentUser && isError && (
         <EmptyPanel>
           <IconBadge tone="destructive">
             <AlertTriangle className="size-7" />
@@ -83,7 +93,7 @@ export default function MyAssignmentsPage() {
         </EmptyPanel>
       )}
 
-      {actingAsId && !isLoading && !isError && (assignments ?? []).length === 0 && (
+      {currentUser && !isLoadingAssignments && !isError && (assignments ?? []).length === 0 && (
         <EmptyPanel>
           <IconBadge tone="primary">
             <ClipboardList className="size-7" />
@@ -95,7 +105,7 @@ export default function MyAssignmentsPage() {
         </EmptyPanel>
       )}
 
-      {actingAsId && !isLoading && !isError && todo.length > 0 && (
+      {currentUser && !isLoadingAssignments && !isError && todo.length > 0 && (
         <div className="flex flex-col gap-3">
           {todo.map((assignment) => (
             <AssignmentTaskCard
@@ -107,7 +117,7 @@ export default function MyAssignmentsPage() {
         </div>
       )}
 
-      {actingAsId && !isLoading && !isError && completed.length > 0 && (
+      {currentUser && !isLoadingAssignments && !isError && completed.length > 0 && (
         <div className="mt-6">
           <h2 className="text-heading-md mb-3 text-foreground">Completed</h2>
           <div className="flex flex-col gap-2 opacity-70">

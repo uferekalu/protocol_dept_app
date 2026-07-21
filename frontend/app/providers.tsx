@@ -7,6 +7,7 @@ import { store } from '@/lib/redux/store';
 import { AppHeader } from '@/components/app-header';
 import { AppNav } from '@/components/app-nav';
 import { MobileNavDrawer } from '@/components/mobile-nav-drawer';
+import { AuthHydrator } from '@/components/auth-hydrator';
 
 // Central place to wrap the app in client-side providers: theming, Redux store,
 // toast notifications, and anything else added later.
@@ -14,6 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <Provider store={store}>
+        <AuthHydrator />
         <AppHeader />
         <AppNav />
         <MobileNavDrawer />
