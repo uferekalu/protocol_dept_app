@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-// Grows as more screens land (Events, Calendar, Reports). A horizontally-scrolling tab
-// row rather than a hamburger drawer — simple, and holds up fine as more links get
-// added, without building a mobile drawer. Invitations has no top-level tab by design —
-// it's reached through a minister's profile, not browsed independently.
+// Desktop/tablet only (sm and up) — a horizontally-scrolling tab row, simple and holds
+// up fine as more links get added. Below `sm`, MobileNavDrawer takes over instead: a
+// row of tabs read as cramped on a narrow phone screen once a 4th link landed, per
+// user feedback. Invitations has no top-level tab by design — it's reached through a
+// minister's profile, not browsed independently.
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard' },
   { href: '/ministers', label: 'Ministers' },
@@ -21,7 +22,7 @@ export function AppNav() {
   return (
     <nav
       aria-label="Primary"
-      className="sticky top-14 z-30 border-b border-border bg-background"
+      className="sticky top-14 z-30 hidden border-b border-border bg-background sm:block"
     >
       <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 sm:px-4">
         {NAV_LINKS.map((link) => {
