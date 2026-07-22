@@ -12,7 +12,7 @@ import type {
   UpdateInvitationInput,
   UpdateInvitationStatusInput,
 } from '@/lib/types/invitation';
-import type { ProtocolMember } from '@/lib/types/protocol-member';
+import type { ProtocolMember, UpdateProtocolMemberInput } from '@/lib/types/protocol-member';
 import type {
   Assignment,
   CreateAssignmentInput,
@@ -22,7 +22,12 @@ import type {
 import type { CreateMinisterInput, Minister, UpdateMinisterInput } from '@/lib/types/minister';
 import type { Event } from '@/lib/types/event';
 import type { StatusLog } from '@/lib/types/status-log';
-import type { AuthenticatedProtocolMember, LoginInput, LoginResponse } from '@/lib/types/auth';
+import type {
+  AuthenticatedProtocolMember,
+  LoginInput,
+  LoginResponse,
+  SignupInput,
+} from '@/lib/types/auth';
 import type { RootState } from './store';
 import { clearToken } from './slices/authSlice';
 
@@ -70,8 +75,16 @@ export const api = createApi({
       query: (body) => ({ url: '/auth/login', method: 'POST', body }),
     }),
 
+    signup: builder.mutation<LoginResponse, SignupInput>({
+      query: (body) => ({ url: '/auth/signup', method: 'POST', body }),
+    }),
+
     getCurrentUser: builder.query<AuthenticatedProtocolMember, void>({
       query: () => '/auth/me',
+      // A fixed 'ME' id (there's no per-invocation argument to key off) — lets
+      // updateProtocolMember invalidate it whenever it might have just edited the
+      // signed-in user's own record, so the header picks up a name/role change.
+      providesTags: [{ type: 'ProtocolMember', id: 'ME' }],
     }),
 
     getMinisters: builder.query<Minister[], void>({
@@ -186,7 +199,30 @@ export const api = createApi({
 
     getProtocolMembers: builder.query<ProtocolMember[], void>({
       query: () => '/protocol-members',
-      providesTags: [{ type: 'ProtocolMember', id: 'LIST' }],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((member) => ({ type: 'ProtocolMember' as const, id: member._id })),
+              { type: 'ProtocolMember' as const, id: 'LIST' },
+            ]
+          : [{ type: 'ProtocolMember' as const, id: 'LIST' }],
+    }),
+
+    getProtocolMember: builder.query<ProtocolMember, string>({
+      query: (id) => `/protocol-members/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'ProtocolMember', id }],
+    }),
+
+    updateProtocolMember: builder.mutation<
+      ProtocolMember,
+      { id: string } & UpdateProtocolMemberInput
+    >({
+      query: ({ id, ...body }) => ({ url: `/protocol-members/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'ProtocolMember', id },
+        { type: 'ProtocolMember', id: 'LIST' },
+        { type: 'ProtocolMember', id: 'ME' },
+      ],
     }),
 
     getAssignmentsByInvitation: builder.query<Assignment[], string>({
@@ -286,6 +322,7 @@ export const api = createApi({
 
 export const {
   useLoginMutation,
+  useSignupMutation,
   useGetCurrentUserQuery,
   useGetMinistersQuery,
   useGetMinisterQuery,
@@ -301,6 +338,8 @@ export const {
   useGetStatusLogsByInvitationQuery,
   useUpdateInvitationStatusMutation,
   useGetProtocolMembersQuery,
+  useGetProtocolMemberQuery,
+  useUpdateProtocolMemberMutation,
   useGetAssignmentsByInvitationQuery,
   useGetAssignmentsByProtocolMemberQuery,
   useCreateAssignmentMutation,

@@ -15,6 +15,7 @@ const NAV_LINKS = [
   { href: '/assignments', label: 'Assignments' },
   { href: '/my-assignments', label: 'My Assignments' },
   { href: '/calendar', label: 'Calendar' },
+  { href: '/team', label: 'Team' },
 ];
 
 export function AppNav() {

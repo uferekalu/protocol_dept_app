@@ -34,12 +34,15 @@ export function UserMenu() {
 
   return (
     <div className="flex items-center gap-1.5 sm:gap-2">
-      <div className="hidden text-right leading-tight sm:block">
+      <Link
+        href="/profile"
+        className="hidden text-right leading-tight hover:opacity-80 sm:block"
+      >
         <p className="text-body-sm font-medium text-foreground">{user.full_name}</p>
         <p className="text-caption text-muted-foreground">
           {PROTOCOL_MEMBER_ROLE_LABELS[user.role]}
         </p>
-      </div>
+      </Link>
       <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Log out">
         <LogOut className="size-4" />
       </Button>
