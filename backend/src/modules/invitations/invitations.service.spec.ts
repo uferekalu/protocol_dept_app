@@ -292,7 +292,7 @@ describe('InvitationsService', () => {
       model.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(mockInvitation) });
     });
 
-    it('validates updated_by references an existing protocol member', async () => {
+    it('validates updatedBy references an existing protocol member', async () => {
       model.findByIdAndUpdate.mockReturnValue({
         exec: jest.fn().mockResolvedValue({
           ...mockInvitation,
@@ -300,32 +300,35 @@ describe('InvitationsService', () => {
         }),
       });
 
-      await service.updateStatus('invitation-1', {
-        status: InvitationStatus.AIRPORT_PICKUP_IN_PROGRESS,
-        updated_by: 'member-1',
-      });
+      await service.updateStatus(
+        'invitation-1',
+        { status: InvitationStatus.AIRPORT_PICKUP_IN_PROGRESS },
+        'member-1',
+      );
 
       expect(protocolMembersService.findOne).toHaveBeenCalledWith('member-1');
     });
 
-    it('propagates NotFoundException when updated_by does not reference a real protocol member', async () => {
+    it('propagates NotFoundException when updatedBy does not reference a real protocol member', async () => {
       protocolMembersService.findOne.mockRejectedValue(new NotFoundException());
 
       await expect(
-        service.updateStatus('invitation-1', {
-          status: InvitationStatus.AIRPORT_PICKUP_IN_PROGRESS,
-          updated_by: 'missing-member',
-        }),
+        service.updateStatus(
+          'invitation-1',
+          { status: InvitationStatus.AIRPORT_PICKUP_IN_PROGRESS },
+          'missing-member',
+        ),
       ).rejects.toThrow(NotFoundException);
       expect(statusLogsService.create).not.toHaveBeenCalled();
     });
 
     it('rejects an invalid transition (e.g. INVITED straight to DEPARTED)', async () => {
       await expect(
-        service.updateStatus('invitation-1', {
-          status: InvitationStatus.DEPARTED_TRIP_COMPLETED,
-          updated_by: 'member-1',
-        }),
+        service.updateStatus(
+          'invitation-1',
+          { status: InvitationStatus.DEPARTED_TRIP_COMPLETED },
+          'member-1',
+        ),
       ).rejects.toThrow(BadRequestException);
       expect(statusLogsService.create).not.toHaveBeenCalled();
       expect(model.findByIdAndUpdate).not.toHaveBeenCalled();
@@ -339,10 +342,11 @@ describe('InvitationsService', () => {
       });
 
       await expect(
-        service.updateStatus('invitation-1', {
-          status: InvitationStatus.EN_ROUTE_TO_VENUE,
-          updated_by: 'member-1',
-        }),
+        service.updateStatus(
+          'invitation-1',
+          { status: InvitationStatus.EN_ROUTE_TO_VENUE },
+          'member-1',
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -359,11 +363,11 @@ describe('InvitationsService', () => {
         }),
       });
 
-      await service.updateStatus('invitation-1', {
-        status: InvitationStatus.AIRPORT_PICKUP_IN_PROGRESS,
-        updated_by: 'member-1',
-        notes: 'On the way',
-      });
+      await service.updateStatus(
+        'invitation-1',
+        { status: InvitationStatus.AIRPORT_PICKUP_IN_PROGRESS, notes: 'On the way' },
+        'member-1',
+      );
 
       expect(callOrder).toEqual(['log', 'update']);
       expect(statusLogsService.create).toHaveBeenCalledWith({
@@ -391,10 +395,11 @@ describe('InvitationsService', () => {
           .mockResolvedValue({ ...mockInvitation, status: InvitationStatus.EN_ROUTE_TO_VENUE }),
       });
 
-      const result = await service.updateStatus('invitation-1', {
-        status: InvitationStatus.EN_ROUTE_TO_VENUE,
-        updated_by: 'member-1',
-      });
+      const result = await service.updateStatus(
+        'invitation-1',
+        { status: InvitationStatus.EN_ROUTE_TO_VENUE },
+        'member-1',
+      );
 
       expect(result.status).toBe(InvitationStatus.EN_ROUTE_TO_VENUE);
     });
@@ -412,10 +417,11 @@ describe('InvitationsService', () => {
         }),
       });
 
-      const result = await service.updateStatus('invitation-1', {
-        status: InvitationStatus.EN_ROUTE_TO_DEPARTURE_POINT,
-        updated_by: 'member-1',
-      });
+      const result = await service.updateStatus(
+        'invitation-1',
+        { status: InvitationStatus.EN_ROUTE_TO_DEPARTURE_POINT },
+        'member-1',
+      );
 
       expect(result.status).toBe(InvitationStatus.EN_ROUTE_TO_DEPARTURE_POINT);
     });

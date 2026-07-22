@@ -23,6 +23,7 @@ describe('AuthService', () => {
   let protocolMembersService: {
     findByPhoneNumberWithPassword: jest.Mock;
     findOne: jest.Mock;
+    create: jest.Mock;
   };
   let jwtService: { sign: jest.Mock };
 
@@ -31,6 +32,7 @@ describe('AuthService', () => {
     protocolMembersService = {
       findByPhoneNumberWithPassword: jest.fn(),
       findOne: jest.fn(),
+      create: jest.fn(),
     };
     jwtService = { sign: jest.fn().mockReturnValue('signed-jwt') };
 
@@ -112,6 +114,45 @@ describe('AuthService', () => {
       }
 
       expect(unknownPhoneMessage).toBe(wrongPasswordMessage);
+    });
+  });
+
+  describe('signup', () => {
+    const dto = {
+      full_name: 'Grace Adeyemi',
+      phone_number: '+2348022223333',
+      password: 'a-strong-password',
+    };
+
+    it('always creates the member with role MEMBER, ignoring anything else', async () => {
+      protocolMembersService.create.mockResolvedValue(mockMemberWithPassword);
+
+      const result = await service.signup(dto);
+
+      expect(protocolMembersService.create).toHaveBeenCalledWith({
+        ...dto,
+        role: ProtocolMemberRole.MEMBER,
+      });
+      expect(jwtService.sign).toHaveBeenCalledWith({
+        sub: 'member-1',
+        role: ProtocolMemberRole.MEMBER,
+      });
+      expect(result).toEqual({
+        access_token: 'signed-jwt',
+        protocol_member: {
+          _id: 'member-1',
+          full_name: 'Grace Adeyemi',
+          phone_number: '+2348022223333',
+          role: ProtocolMemberRole.MEMBER,
+        },
+      });
+    });
+
+    it('propagates a duplicate-phone conflict from ProtocolMembersService.create', async () => {
+      const { ConflictException } = jest.requireActual('@nestjs/common');
+      protocolMembersService.create.mockRejectedValue(new ConflictException());
+
+      await expect(service.signup(dto)).rejects.toThrow(ConflictException);
     });
   });
 

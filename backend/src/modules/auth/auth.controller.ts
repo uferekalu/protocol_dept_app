@@ -1,7 +1,14 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { SignupDto } from './dto/signup.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
@@ -10,6 +17,15 @@ import { JwtPayload } from './interfaces/jwt-payload.interface';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Post('signup')
+  @ApiOperation({
+    summary: 'Self-service sign up — always creates a MEMBER account, returns a JWT',
+  })
+  @ApiConflictResponse({ description: 'A protocol member with this phone number already exists' })
+  signup(@Body() signupDto: SignupDto) {
+    return this.authService.signup(signupDto);
+  }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)

@@ -88,18 +88,34 @@ general-purpose `PATCH /invitations/:id` used for editing hotel/date details.
     `PATCH /assignments/:id/status` only where `id`/`protocol_member_id` matches
     `request.user.sub`).
   - The self-vs-admin distinction on `PATCH /protocol-members/:id` (own record, editable
-    minus `role`, vs. someone else's record, `ADMIN`-only, `role` includable) is
-    field/ownership-level authorization `RolesGuard` alone can't express — that logic
-    belongs in `ProtocolMembersService`/`ProtocolMembersController`, comparing
-    `request.user.sub` to the `:id` param and `request.user.role`, not a route-level
-    `@Roles()` alone.
+    minus `role`, vs. someone else's record, `ADMIN`-only, `role` includable) and the
+    ownership check on `PATCH /assignments/:id/status` /
+    `GET /protocol-members/:id/assignments` (owner or `ADMIN`/`COORDINATOR`) are
+    field/resource-level authorization `RolesGuard` alone can't express (it only knows
+    the route and the requester's role, not the specific record being touched) — that
+    logic lives directly in the controller, comparing `request.user.sub` (via
+    `@CurrentUser()`) to the `:id` param / the resource's owning id, throwing
+    `ForbiddenException` itself rather than going through `RolesGuard`.
   - `POST /protocol-members` (direct admin-created account) stays `ADMIN`-only — not
     removed, since an Admin may occasionally need to seed an account directly — but it's
     no longer the primary/expected path for new Protocol Members and the frontend
     doesn't build an "Add Protocol Member" UI around it. Sign-up is the primary path.
+- **`PATCH /invitations/:id/status`'s `updated_by`** is derived from
+  `request.user.sub` (via `@CurrentUser()`), never trusted from the request body — the
+  DTO still *accepts* an `updated_by` field (optional, silently unused) purely so a
+  not-yet-updated client isn't rejected by the global `ValidationPipe`'s
+  `forbidNonWhitelisted` check; the value is always ignored in favor of the
+  authenticated identity.
+- **Bootstrapping the first ADMIN.** Since `POST /protocol-members` is `ADMIN`-only and
+  `POST /auth/signup` always creates a `MEMBER`, there's no in-app way to create the
+  very first Admin account — sign up normally, then flip that one document's `role` to
+  `ADMIN` directly in Mongo:
+  `mongosh "mongodb://127.0.0.1:27017/protocol_department" --eval "db.protocolmembers.updateOne({phone_number: '+234...'}, {\$set: {role: 'ADMIN'}})"`.
+  Log in again afterward — an already-issued JWT still carries the old role until it's
+  reissued.
 - Built last relative to the other modules per the brief's Phase 5, and staged across
   several PRs so the app is never left broken mid-phase: backend infrastructure first
-  (login/JWT, unguarded), then the frontend (login screen/session), then finally a PR
+  (login/JWT, unguarded), then the frontend (login screen/session), then finally the PR
   that adds `/auth/signup` and applies the guards above to the real endpoints. The
   `ProtocolMember` schema itself (with a hashed password field) has been in place since
   Phase 1 since `Assignment` references it.
