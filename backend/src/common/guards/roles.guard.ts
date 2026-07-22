@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { ROLES_KEY } from '../decorators/roles.decorator';
@@ -23,6 +23,20 @@ export class RolesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<Request & { user?: JwtPayload }>();
-    return Boolean(request.user && requiredRoles.includes(request.user.role));
+    const hasRequiredRole = Boolean(request.user && requiredRoles.includes(request.user.role));
+
+    // A bare `return false` here produces Nest's generic "Forbidden resource" — no
+    // help to whoever hits it. Throwing explicitly lets us name the single most likely
+    // cause: the JWT's role claim is a snapshot taken at login time (see
+    // AuthService.signup()/login()), so a role change (e.g. Member -> Coordinator, or
+    // the mongosh ADMIN bootstrap in backend/CLAUDE.md) never takes effect for an
+    // already-issued token until the holder logs out and back in.
+    if (!hasRequiredRole) {
+      throw new ForbiddenException(
+        "Your account doesn't have permission for this action. If your role was recently changed, log out and log back in to refresh your session.",
+      );
+    }
+
+    return true;
   }
 }

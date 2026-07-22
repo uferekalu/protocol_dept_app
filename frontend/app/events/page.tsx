@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, CalendarRange, ChevronRight, Plus } from 'lucide-react';
 import { useGetEventsQuery } from '@/lib/redux/api';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
+import { isElevatedRole } from '@/lib/constants/protocol-member';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
@@ -35,6 +37,8 @@ function formatDateRange(startDate: string, endDate: string) {
 // were previously only creatable via Swagger; this is the first UI for them.
 export default function EventsPage() {
   const { data: events, isLoading, isError, error, refetch } = useGetEventsQuery();
+  const { data: currentUser } = useCurrentUser();
+  const canManage = isElevatedRole(currentUser?.role);
   const [createOpen, setCreateOpen] = useState(false);
   const router = useRouter();
 
@@ -47,10 +51,12 @@ export default function EventsPage() {
             Revivals and Crusades that ministers get invited to.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} className="h-10 gap-1.5">
-          <Plus className="size-4" />
-          Add Event
-        </Button>
+        {canManage && (
+          <Button onClick={() => setCreateOpen(true)} className="h-10 gap-1.5">
+            <Plus className="size-4" />
+            Add Event
+          </Button>
+        )}
       </div>
 
       {isLoading && <ListSkeleton />}
@@ -81,10 +87,12 @@ export default function EventsPage() {
           <p className="text-body-sm max-w-sm text-muted-foreground">
             Add the first event before inviting ministers to it.
           </p>
-          <Button onClick={() => setCreateOpen(true)} className="mt-1 gap-1.5">
-            <Plus className="size-4" />
-            Add Event
-          </Button>
+          {canManage && (
+            <Button onClick={() => setCreateOpen(true)} className="mt-1 gap-1.5">
+              <Plus className="size-4" />
+              Add Event
+            </Button>
+          )}
         </EmptyPanel>
       )}
 

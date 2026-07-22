@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, ChevronRight, Plus, UserRound } from 'lucide-react';
 import { useGetMinistersQuery } from '@/lib/redux/api';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
+import { isElevatedRole } from '@/lib/constants/protocol-member';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
@@ -20,9 +22,13 @@ import {
 
 // Minister list — brief Section 5 (screen 3) / frontend/CLAUDE.md's screen order.
 // Reusable profiles across every event, so this is a plain browse/create screen;
-// edit and delete live on the profile page, not here.
+// edit and delete live on the profile page, not here. "Add Minister" is
+// ADMIN/COORDINATOR-only, matching the backend's @Roles guard on POST /ministers — a
+// plain MEMBER never sees a control the API would reject.
 export default function MinistersPage() {
   const { data: ministers, isLoading, isError, error, refetch } = useGetMinistersQuery();
+  const { data: currentUser } = useCurrentUser();
+  const canManage = isElevatedRole(currentUser?.role);
   const [createOpen, setCreateOpen] = useState(false);
   const router = useRouter();
 
@@ -35,10 +41,12 @@ export default function MinistersPage() {
             Profiles are reusable across every event, year after year.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} className="h-10 gap-1.5">
-          <Plus className="size-4" />
-          Add Minister
-        </Button>
+        {canManage && (
+          <Button onClick={() => setCreateOpen(true)} className="h-10 gap-1.5">
+            <Plus className="size-4" />
+            Add Minister
+          </Button>
+        )}
       </div>
 
       {isLoading && <ListSkeleton />}
@@ -69,10 +77,12 @@ export default function MinistersPage() {
           <p className="text-body-sm max-w-sm text-muted-foreground">
             Add the first minister profile to start inviting them to events.
           </p>
-          <Button onClick={() => setCreateOpen(true)} className="mt-1 gap-1.5">
-            <Plus className="size-4" />
-            Add Minister
-          </Button>
+          {canManage && (
+            <Button onClick={() => setCreateOpen(true)} className="mt-1 gap-1.5">
+              <Plus className="size-4" />
+              Add Minister
+            </Button>
+          )}
         </EmptyPanel>
       )}
 
