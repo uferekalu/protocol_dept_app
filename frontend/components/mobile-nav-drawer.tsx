@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   CalendarDays,
   CalendarRange,
-  ChevronLeft,
-  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ClipboardList,
   LayoutDashboard,
   ListChecks,
@@ -44,6 +44,7 @@ const STORAGE_KEY = 'protocol-department:mobile-nav-expanded';
 export function MobileNavDrawer() {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
 
   // Hydrate the user's last preference from localStorage on mount only — starts
   // collapsed during SSR/first paint to avoid a hydration mismatch (no localStorage on
@@ -57,14 +58,36 @@ export function MobileNavDrawer() {
     if (stored === 'true') setExpanded(true);
   }, []);
 
-  function toggle() {
-    const next = !expanded;
+  function setExpandedAndPersist(next: boolean) {
     setExpanded(next);
     window.localStorage.setItem(STORAGE_KEY, String(next));
   }
 
+  function toggle() {
+    setExpandedAndPersist(!expanded);
+  }
+
+  // Close on an outside click/tap — better mobile UX than requiring the user to find
+  // the chevron again. Only listens while expanded (nothing to close otherwise), and
+  // checks containment against the nav element itself rather than a "did you click a
+  // link" heuristic, so it also closes on a tap anywhere else in the page (including
+  // the header/overlaid content), not just link navigation.
+  useEffect(() => {
+    if (!expanded) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setExpandedAndPersist(false);
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [expanded]);
+
   return (
     <nav
+      ref={navRef}
       aria-label="Primary"
       className={cn(
         'fixed top-14 bottom-0 left-0 z-40 flex flex-col overflow-hidden bg-card text-card-foreground shadow-md ring-1 ring-foreground/10 transition-[width] duration-200 ease-out sm:hidden',
@@ -106,14 +129,16 @@ export function MobileNavDrawer() {
           regardless of viewport height. */}
       <div className="flex-1" />
 
-      <div className="flex justify-center border-t border-border p-1">
+      {/* Left-aligned (matching the icon column above) when expanded, per the reference
+          screenshot — centered when collapsed, same as the nav icons above it. */}
+      <div className={cn('flex border-t border-border p-2', expanded ? 'justify-start' : 'justify-center')}>
         <Button
           variant="ghost"
           size="icon"
           onClick={toggle}
           aria-label={expanded ? 'Collapse navigation' : 'Expand navigation'}
         >
-          {expanded ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
+          {expanded ? <ChevronsLeft className="size-4" /> : <ChevronsRight className="size-4" />}
         </Button>
       </div>
     </nav>
