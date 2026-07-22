@@ -7,15 +7,18 @@ export class UpdateInvitationStatusDto {
   @IsEnum(InvitationStatus)
   status: InvitationStatus;
 
-  // Stand-in for the authenticated user until Phase 5 auth exists — once JWT-based auth
-  // is built, this should come from the request's authenticated ProtocolMember instead
-  // of the request body, per backend/CLAUDE.md.
-  @ApiProperty({
-    description: 'Protocol member id recording this status change',
-    example: '665f1a2b3c4d5e6f7a8b9c0f',
+  // No longer trusted — the real value always comes from the authenticated request
+  // (JwtPayload.sub via @CurrentUser() in the controller), never the body. Kept here,
+  // optional and unused, purely so a not-yet-updated client that still sends this field
+  // doesn't get rejected by the global ValidationPipe's forbidNonWhitelisted check;
+  // remove once every client has moved off the old contract.
+  @ApiPropertyOptional({
+    deprecated: true,
+    description: 'Ignored — the authenticated user is always used instead.',
   })
+  @IsOptional()
   @IsMongoId()
-  updated_by: string;
+  updated_by?: string;
 
   @ApiPropertyOptional({ example: 'Flight delayed by 40 minutes' })
   @IsOptional()

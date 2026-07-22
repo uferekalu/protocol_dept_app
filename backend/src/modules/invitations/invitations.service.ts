@@ -191,13 +191,16 @@ export class InvitationsService {
   // The guarded status-transition endpoint — see backend/CLAUDE.md's "Status workflow
   // — implementation requirement". Never call invitationModel.findByIdAndUpdate with a
   // raw `status` from elsewhere in this service; this is the only path allowed to
-  // change it.
+  // change it. `updatedBy` is a separate parameter, not part of the DTO — it comes from
+  // the authenticated request (JwtPayload.sub), never a client-supplied body field, per
+  // UpdateInvitationStatusDto's now-resolved TODO.
   async updateStatus(
     id: string,
     updateInvitationStatusDto: UpdateInvitationStatusDto,
+    updatedBy: string,
   ): Promise<InvitationDocument> {
     const invitation = await this.findOne(id);
-    await this.protocolMembersService.findOne(updateInvitationStatusDto.updated_by);
+    await this.protocolMembersService.findOne(updatedBy);
 
     const allowedNextStatuses = VALID_STATUS_TRANSITIONS[invitation.status];
     if (!allowedNextStatuses.includes(updateInvitationStatusDto.status)) {
@@ -216,7 +219,7 @@ export class InvitationsService {
     await this.statusLogsService.create({
       invitation_id: id,
       status: updateInvitationStatusDto.status,
-      updated_by: updateInvitationStatusDto.updated_by,
+      updated_by: updatedBy,
       notes: updateInvitationStatusDto.notes,
     });
 

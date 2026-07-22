@@ -8,18 +8,28 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiConflictResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConflictResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ProtocolMemberRole } from '../../common/enums';
 
+// Same pattern as MinistersController: every route requires login, write routes are
+// ADMIN/COORDINATOR-only, reading is open to any authenticated role.
 @ApiTags('events')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('events')
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Post()
+  @Roles(ProtocolMemberRole.ADMIN, ProtocolMemberRole.COORDINATOR)
   @ApiOperation({ summary: 'Create an event' })
   @ApiConflictResponse({ description: 'An event with this name and start date already exists' })
   create(@Body() createEventDto: CreateEventDto) {
@@ -39,6 +49,7 @@ export class EventsController {
   }
 
   @Patch(':id')
+  @Roles(ProtocolMemberRole.ADMIN, ProtocolMemberRole.COORDINATOR)
   @ApiOperation({ summary: 'Update an event' })
   @ApiConflictResponse({ description: 'An event with this name and start date already exists' })
   update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto) {
@@ -46,6 +57,7 @@ export class EventsController {
   }
 
   @Delete(':id')
+  @Roles(ProtocolMemberRole.ADMIN, ProtocolMemberRole.COORDINATOR)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete an event' })
   remove(@Param('id') id: string) {

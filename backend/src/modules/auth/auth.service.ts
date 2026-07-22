@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { ProtocolMembersService } from '../protocol-members/protocol-members.service';
 import { LoginDto } from './dto/login.dto';
+import { SignupDto } from './dto/signup.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { ProtocolMemberRole } from '../../common/enums';
 
@@ -43,6 +44,24 @@ export class AuthService {
     if (!passwordMatches) {
       throw new UnauthorizedException('Invalid phone number or password');
     }
+
+    const payload: JwtPayload = { sub: member._id.toString(), role: member.role };
+    return {
+      access_token: this.jwtService.sign(payload),
+      protocol_member: this.toSafeMember(member),
+    };
+  }
+
+  // Self-service account creation (brief Section 4G, "revised from the original
+  // spec") — always MEMBER, never accepts a role from the caller. Reuses
+  // ProtocolMembersService.create() for hashing + duplicate-phone handling rather than
+  // duplicating that logic here. Returns the same shape as login() so the frontend can
+  // land the new member straight into a logged-in session.
+  async signup(signupDto: SignupDto): Promise<LoginResult> {
+    const member = await this.protocolMembersService.create({
+      ...signupDto,
+      role: ProtocolMemberRole.MEMBER,
+    });
 
     const payload: JwtPayload = { sub: member._id.toString(), role: member.role };
     return {

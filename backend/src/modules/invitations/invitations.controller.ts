@@ -9,15 +9,29 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiConflictResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConflictResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { InvitationsService } from './invitations.service';
 import { StatusLogsService } from '../status-logs/status-logs.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { UpdateInvitationDto } from './dto/update-invitation.dto';
 import { UpdateInvitationStatusDto } from './dto/update-invitation-status.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { ProtocolMemberRole } from '../../common/enums';
 
+// Every route requires login. Creating/editing/deleting an invitation is
+// ADMIN/COORDINATOR-only; reading and the status-transition endpoint are open to any
+// authenticated role — brief Section 4B explicitly allows "the assigned Protocol
+// member" (which can be a MEMBER) to do manual status updates, unlike Assignment
+// management proper.
 @ApiTags('invitations')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('invitations')
 export class InvitationsController {
   constructor(
@@ -26,6 +40,7 @@ export class InvitationsController {
   ) {}
 
   @Post()
+  @Roles(ProtocolMemberRole.ADMIN, ProtocolMemberRole.COORDINATOR)
   @ApiOperation({ summary: 'Create an invitation (links a minister to an event)' })
   @ApiConflictResponse({ description: 'This minister already has an invitation for this event' })
   create(@Body() createInvitationDto: CreateInvitationDto) {
@@ -61,11 +76,13 @@ export class InvitationsController {
   updateStatus(
     @Param('id') id: string,
     @Body() updateInvitationStatusDto: UpdateInvitationStatusDto,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.invitationsService.updateStatus(id, updateInvitationStatusDto);
+    return this.invitationsService.updateStatus(id, updateInvitationStatusDto, user.sub);
   }
 
   @Patch(':id')
+  @Roles(ProtocolMemberRole.ADMIN, ProtocolMemberRole.COORDINATOR)
   @ApiOperation({ summary: 'Update invitation details (hotel, dates, preaching schedule)' })
   @ApiConflictResponse({ description: 'This minister already has an invitation for this event' })
   update(@Param('id') id: string, @Body() updateInvitationDto: UpdateInvitationDto) {
@@ -73,6 +90,7 @@ export class InvitationsController {
   }
 
   @Delete(':id')
+  @Roles(ProtocolMemberRole.ADMIN, ProtocolMemberRole.COORDINATOR)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete an invitation' })
   remove(@Param('id') id: string) {
