@@ -24,6 +24,7 @@ import type { Event } from '@/lib/types/event';
 import type { StatusLog } from '@/lib/types/status-log';
 import type {
   AuthenticatedProtocolMember,
+  ChangePasswordInput,
   LoginInput,
   LoginResponse,
   SignupInput,
@@ -77,6 +78,10 @@ export const api = createApi({
 
     signup: builder.mutation<LoginResponse, SignupInput>({
       query: (body) => ({ url: '/auth/signup', method: 'POST', body }),
+    }),
+
+    changePassword: builder.mutation<void, ChangePasswordInput>({
+      query: (body) => ({ url: '/auth/change-password', method: 'PATCH', body }),
     }),
 
     getCurrentUser: builder.query<AuthenticatedProtocolMember, void>({
@@ -323,6 +328,7 @@ export const api = createApi({
 export const {
   useLoginMutation,
   useSignupMutation,
+  useChangePasswordMutation,
   useGetCurrentUserQuery,
   useGetMinistersQuery,
   useGetMinisterQuery,

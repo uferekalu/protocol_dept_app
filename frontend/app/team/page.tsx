@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AlertTriangle, ChevronRight, Users } from 'lucide-react';
 import { useGetProtocolMembersQuery } from '@/lib/redux/api';
 import { Button } from '@/components/ui/button';
+import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
 import { PROTOCOL_MEMBER_ROLE_LABELS } from '@/lib/constants/protocol-member';
@@ -84,16 +85,21 @@ export default function TeamPage() {
                   onClick={() => router.push(`/team/${member._id}`)}
                 >
                   <TableCell className="whitespace-normal">
-                    <Link
-                      href={`/team/${member._id}`}
-                      className="font-medium text-foreground hover:text-primary hover:underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {member.full_name}
-                    </Link>
-                    <p className="text-caption text-muted-foreground sm:hidden">
-                      {member.phone_number}
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <Avatar imageUrl={member.image_url} name={member.full_name} size="sm" />
+                      <div>
+                        <Link
+                          href={`/team/${member._id}`}
+                          className="font-medium text-foreground hover:text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {member.full_name}
+                        </Link>
+                        <p className="text-caption text-muted-foreground sm:hidden">
+                          {member.phone_number}
+                        </p>
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell className="hidden text-muted-foreground sm:table-cell">
                     {member.phone_number}

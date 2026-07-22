@@ -14,12 +14,19 @@ export interface LoginInput {
   password: string;
 }
 
-// Deliberately has no `role` field — every self-service signup becomes a MEMBER,
-// mirrors backend/src/modules/auth/dto/signup.dto.ts.
+// Deliberately has no `role` field — the caller never gets to choose it. The first
+// account ever created becomes ADMIN, every one after that a MEMBER (see
+// backend/src/modules/auth/auth.service.ts's signup()).
 export interface SignupInput {
   full_name: string;
   phone_number: string;
   password: string;
+}
+
+// Mirrors backend/src/modules/auth/dto/change-password.dto.ts — no current_password
+// (see that DTO's comment), no confirm_password (frontend-only concern).
+export interface ChangePasswordInput {
+  new_password: string;
 }
 
 export interface LoginResponse {

@@ -67,6 +67,17 @@ general-purpose `PATCH /invitations/:id` used for editing hotel/date details.
 - JWT-based auth. `ProtocolMember` is both the "user" record and the domain entity — no
   need for a separate `User` collection.
 - Passwords hashed with `bcrypt` before storage, never stored or logged in plaintext.
+  Password strength is enforced via the shared `PASSWORD_REGEX` /
+  `PASSWORD_REQUIREMENTS_MESSAGE` in `common/validators/password.constants.ts` (at
+  least 6 characters, one uppercase, one lowercase, one digit, one special character) —
+  applied to `SignupDto`, `CreateProtocolMemberDto`, and `ChangePasswordDto` alike, so
+  there's one place to change the rule.
+- **Changing your password** goes through the dedicated `PATCH /auth/change-password`
+  (`AuthService.changePassword()`), not the general `PATCH /protocol-members/:id` —
+  that endpoint's DTO has no password field at all. `changePassword` requires the new
+  password differ from the current hash (`bcrypt.compare`) and rejects with `400` if
+  it's the same; it deliberately does not ask for the current password as proof of
+  identity, relying entirely on the JWT-authenticated session instead.
 - **Account creation is self-service, not admin-driven** — see the brief's Section 4G
   ("Revised from the original spec"). `POST /auth/signup` is public (no guard), takes
   `full_name` / `phone_number` / `password`, and always creates the record with
@@ -106,13 +117,16 @@ general-purpose `PATCH /invitations/:id` used for editing hotel/date details.
   not-yet-updated client isn't rejected by the global `ValidationPipe`'s
   `forbidNonWhitelisted` check; the value is always ignored in favor of the
   authenticated identity.
-- **Bootstrapping the first ADMIN.** Since `POST /protocol-members` is `ADMIN`-only and
-  `POST /auth/signup` always creates a `MEMBER`, there's no in-app way to create the
-  very first Admin account — sign up normally, then flip that one document's `role` to
-  `ADMIN` directly in Mongo:
-  `mongosh "mongodb://127.0.0.1:27017/protocol_department" --eval "db.protocolmembers.updateOne({phone_number: '+234...'}, {\$set: {role: 'ADMIN'}})"`.
-  Log in again afterward — an already-issued JWT still carries the old role until it's
-  reissued.
+- **Bootstrapping the first ADMIN.** `AuthService.signup()` checks
+  `ProtocolMembersService.count()` before creating the record: if this is the very first
+  `ProtocolMember` document in the database, the account is created with `role: ADMIN`
+  instead of `MEMBER`. Every signup after that first one is a normal `MEMBER`. This
+  means simply being the first person to sign up on a fresh database makes you the
+  Admin — no manual `mongosh` step needed. (If a Mongo collection somehow already has
+  members but no Admin, the same manual `mongosh` role flip still works as a fallback:
+  `mongosh "mongodb://127.0.0.1:27017/protocol_department" --eval "db.protocolmembers.updateOne({phone_number: '+234...'}, {\$set: {role: 'ADMIN'}})"`
+  — log in again afterward, since an already-issued JWT still carries the old role until
+  it's reissued.)
 - Built last relative to the other modules per the brief's Phase 5, and staged across
   several PRs so the app is never left broken mid-phase: backend infrastructure first
   (login/JWT, unguarded), then the frontend (login screen/session), then finally the PR

@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -8,6 +8,7 @@ import { ProtocolMemberRole } from '../../common/enums';
 
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
+  hash: jest.fn().mockResolvedValue('new-hashed-password'),
 }));
 
 const mockMemberWithPassword = {
@@ -22,8 +23,11 @@ describe('AuthService', () => {
   let service: AuthService;
   let protocolMembersService: {
     findByPhoneNumberWithPassword: jest.Mock;
+    findByIdWithPassword: jest.Mock;
     findOne: jest.Mock;
     create: jest.Mock;
+    count: jest.Mock;
+    updatePassword: jest.Mock;
   };
   let jwtService: { sign: jest.Mock };
 
@@ -31,8 +35,13 @@ describe('AuthService', () => {
     jest.clearAllMocks();
     protocolMembersService = {
       findByPhoneNumberWithPassword: jest.fn(),
+      findByIdWithPassword: jest.fn(),
       findOne: jest.fn(),
       create: jest.fn(),
+      // Defaults to "not the first account" so the existing signup tests below don't
+      // need to know about the bootstrap check unless they're specifically testing it.
+      count: jest.fn().mockResolvedValue(1),
+      updatePassword: jest.fn(),
     };
     jwtService = { sign: jest.fn().mockReturnValue('signed-jwt') };
 
@@ -124,7 +133,8 @@ describe('AuthService', () => {
       password: 'a-strong-password',
     };
 
-    it('always creates the member with role MEMBER, ignoring anything else', async () => {
+    it('creates the member with role MEMBER when this is not the first account, ignoring anything else in the payload', async () => {
+      protocolMembersService.count.mockResolvedValue(1);
       protocolMembersService.create.mockResolvedValue(mockMemberWithPassword);
 
       const result = await service.signup(dto);
@@ -148,11 +158,64 @@ describe('AuthService', () => {
       });
     });
 
+    it('creates the very first account ever as ADMIN (the in-app bootstrap path)', async () => {
+      protocolMembersService.count.mockResolvedValue(0);
+      protocolMembersService.create.mockResolvedValue({
+        ...mockMemberWithPassword,
+        role: ProtocolMemberRole.ADMIN,
+      });
+
+      const result = await service.signup(dto);
+
+      expect(protocolMembersService.create).toHaveBeenCalledWith({
+        ...dto,
+        role: ProtocolMemberRole.ADMIN,
+      });
+      expect(result.protocol_member.role).toBe(ProtocolMemberRole.ADMIN);
+    });
+
     it('propagates a duplicate-phone conflict from ProtocolMembersService.create', async () => {
       const { ConflictException } = jest.requireActual('@nestjs/common');
       protocolMembersService.create.mockRejectedValue(new ConflictException());
 
       await expect(service.signup(dto)).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('changePassword', () => {
+    const dto = { new_password: 'A-new-p4ssword!' };
+
+    it('rejects when the new password is the same as the current one', async () => {
+      protocolMembersService.findByIdWithPassword.mockResolvedValue(mockMemberWithPassword);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(service.changePassword('member-1', dto)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(protocolMembersService.updatePassword).not.toHaveBeenCalled();
+    });
+
+    it('hashes and saves the new password when it differs from the current one', async () => {
+      protocolMembersService.findByIdWithPassword.mockResolvedValue(mockMemberWithPassword);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      await service.changePassword('member-1', dto);
+
+      expect(bcrypt.compare).toHaveBeenCalledWith('A-new-p4ssword!', 'hashed-password');
+      expect(bcrypt.hash).toHaveBeenCalledWith('A-new-p4ssword!', 10);
+      expect(protocolMembersService.updatePassword).toHaveBeenCalledWith(
+        'member-1',
+        'new-hashed-password',
+      );
+    });
+
+    it('rejects with UnauthorizedException if the member somehow no longer exists', async () => {
+      protocolMembersService.findByIdWithPassword.mockResolvedValue(null);
+
+      await expect(service.changePassword('missing', dto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(protocolMembersService.updatePassword).not.toHaveBeenCalled();
     });
   });
 

@@ -7,6 +7,8 @@ export interface ProtocolMember {
   _id: string;
   full_name: string;
   phone_number: string;
+  email?: string;
+  image_url?: string;
   role: ProtocolMemberRole;
   createdAt: string;
   updatedAt: string;
@@ -15,8 +17,13 @@ export interface ProtocolMember {
 export interface CreateProtocolMemberInput {
   full_name: string;
   phone_number: string;
+  email?: string;
+  image_url?: string;
   role: ProtocolMemberRole;
   password: string;
 }
 
-export type UpdateProtocolMemberInput = Partial<CreateProtocolMemberInput>;
+// No `password` — changing a password goes through the dedicated
+// PATCH /auth/change-password (see lib/types/auth.ts's ChangePasswordInput) instead of
+// the general profile update, mirroring UpdateProtocolMemberDto on the backend.
+export type UpdateProtocolMemberInput = Partial<Omit<CreateProtocolMemberInput, 'password'>>;

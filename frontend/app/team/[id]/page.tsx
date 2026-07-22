@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { AlertTriangle, ArrowLeft, Phone, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, KeyRound, Phone, ShieldCheck } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { useGetProtocolMemberQuery, useUpdateProtocolMemberMutation } from '@/lib/redux/api';
 import { profileFormSchema, type ProfileFormValues } from '@/lib/schemas/auth';
@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar } from '@/components/ui/avatar';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
 import {
   Select,
@@ -59,12 +60,16 @@ export default function TeamMemberPage() {
     formState: { errors },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues: { full_name: '', phone_number: '', password: '' },
+    defaultValues: { full_name: '', phone_number: '', email: '' },
   });
 
   useEffect(() => {
     if (member && isSelf) {
-      reset({ full_name: member.full_name, phone_number: member.phone_number, password: '' });
+      reset({
+        full_name: member.full_name,
+        phone_number: member.phone_number,
+        email: member.email ?? '',
+      });
     }
   }, [member, isSelf, reset]);
 
@@ -74,7 +79,7 @@ export default function TeamMemberPage() {
         id,
         full_name: values.full_name,
         phone_number: values.phone_number,
-        password: values.password || undefined,
+        email: values.email || undefined,
       }).unwrap();
       toast.success('Profile updated');
     } catch (error) {
@@ -128,10 +133,15 @@ export default function TeamMemberPage() {
 
       {member && isSelf && (
         <>
-          <h1 className="text-heading-lg mb-1 text-foreground">My Profile</h1>
-          <p className="text-body-sm mb-6 text-muted-foreground">
-            {PROTOCOL_MEMBER_ROLE_LABELS[member.role]}
-          </p>
+          <div className="mb-6 flex items-center gap-4">
+            <Avatar imageUrl={member.image_url} name={member.full_name} size="lg" />
+            <div>
+              <h1 className="text-heading-lg text-foreground">My Profile</h1>
+              <p className="text-body-sm text-muted-foreground">
+                {PROTOCOL_MEMBER_ROLE_LABELS[member.role]}
+              </p>
+            </div>
+          </div>
           <form onSubmit={handleSubmit(onSubmitProfile)} className="flex flex-col gap-4">
             <Field label="Full name" error={errors.full_name?.message}>
               <Input {...register('full_name')} autoComplete="name" />
@@ -139,29 +149,37 @@ export default function TeamMemberPage() {
             <Field label="Phone number" error={errors.phone_number?.message}>
               <Input {...register('phone_number')} type="tel" autoComplete="tel" />
             </Field>
-            <Field label="New password (optional)" error={errors.password?.message}>
-              <Input
-                {...register('password')}
-                type="password"
-                autoComplete="new-password"
-                placeholder="Leave blank to keep your current password"
-              />
+            <Field label="Email (optional)" error={errors.email?.message}>
+              <Input {...register('email')} type="email" autoComplete="email" placeholder="you@example.com" />
             </Field>
             <Button type="submit" size="lg" className="mt-2 h-11" disabled={isSavingProfile}>
               {isSavingProfile ? 'Saving…' : 'Save changes'}
             </Button>
           </form>
+
+          <Link
+            href="/change-password"
+            className="text-body-sm mt-6 inline-flex items-center gap-1.5 text-primary hover:underline"
+          >
+            <KeyRound className="size-4" />
+            Change password
+          </Link>
         </>
       )}
 
       {member && !isSelf && (
         <>
-          <h1 className="text-heading-lg mb-1 text-foreground">{member.full_name}</h1>
-          <div className="mb-6 flex flex-col gap-1.5">
-            <DetailRow icon={<Phone className="size-4" />}>{member.phone_number}</DetailRow>
-            <DetailRow icon={<ShieldCheck className="size-4" />}>
-              {PROTOCOL_MEMBER_ROLE_LABELS[member.role]}
-            </DetailRow>
+          <div className="mb-6 flex items-center gap-4">
+            <Avatar imageUrl={member.image_url} name={member.full_name} size="lg" />
+            <div>
+              <h1 className="text-heading-lg text-foreground">{member.full_name}</h1>
+              <div className="mt-1 flex flex-col gap-1.5">
+                <DetailRow icon={<Phone className="size-4" />}>{member.phone_number}</DetailRow>
+                <DetailRow icon={<ShieldCheck className="size-4" />}>
+                  {PROTOCOL_MEMBER_ROLE_LABELS[member.role]}
+                </DetailRow>
+              </div>
+            </div>
           </div>
 
           {isAdmin && (

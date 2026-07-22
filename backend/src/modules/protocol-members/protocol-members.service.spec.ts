@@ -33,6 +33,7 @@ describe('ProtocolMembersService', () => {
     findById: jest.Mock;
     findByIdAndUpdate: jest.Mock;
     findByIdAndDelete: jest.Mock;
+    countDocuments: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -44,6 +45,7 @@ describe('ProtocolMembersService', () => {
       findById: jest.fn(),
       findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
+      countDocuments: jest.fn(),
     };
     // No duplicate by default; individual tests override this to simulate a conflict.
     model.findOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
@@ -114,6 +116,14 @@ describe('ProtocolMembersService', () => {
     expect(result).toEqual(mockMember);
   });
 
+  it('counts all members (used only for the first-account-is-ADMIN bootstrap check)', async () => {
+    model.countDocuments.mockReturnValue({ exec: jest.fn().mockResolvedValue(3) });
+
+    const result = await service.count();
+
+    expect(result).toBe(3);
+  });
+
   describe('findByPhoneNumberWithPassword', () => {
     it('opts back into password_hash via select, unlike every other query', async () => {
       const select = jest.fn().mockReturnValue({
@@ -139,6 +149,21 @@ describe('ProtocolMembersService', () => {
     });
   });
 
+  describe('findByIdWithPassword', () => {
+    it('opts back into password_hash via select, scoped to a single id', async () => {
+      const select = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ ...mockMember, password_hash: 'hashed' }),
+      });
+      model.findById.mockReturnValue({ select });
+
+      const result = await service.findByIdWithPassword('member-1');
+
+      expect(model.findById).toHaveBeenCalledWith('member-1');
+      expect(select).toHaveBeenCalledWith('+password_hash');
+      expect(result).toEqual({ ...mockMember, password_hash: 'hashed' });
+    });
+  });
+
   it('throws NotFoundException when the member does not exist', async () => {
     model.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
 
@@ -152,31 +177,16 @@ describe('ProtocolMembersService', () => {
       await expect(service.update('missing', {})).rejects.toThrow(NotFoundException);
     });
 
-    it('hashes a new password and never sends the plaintext to the model', async () => {
+    it('passes the update straight through — password is no longer part of this DTO', async () => {
       model.findByIdAndUpdate.mockReturnValue({
         exec: jest.fn().mockResolvedValue(mockMember),
       });
 
-      await service.update('member-1', { password: 'a-new-password' });
-
-      expect(bcrypt.hash).toHaveBeenCalledWith('a-new-password', 10);
-      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
-        'member-1',
-        { password_hash: 'hashed-password' },
-        { new: true },
-      );
-    });
-
-    it('leaves password_hash untouched when password is not part of the update', async () => {
-      model.findByIdAndUpdate.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockMember),
-      });
-
-      await service.update('member-1', { full_name: 'Grace A.' });
+      await service.update('member-1', { full_name: 'Grace A.', email: 'grace@example.com' });
 
       expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
         'member-1',
-        { full_name: 'Grace A.' },
+        { full_name: 'Grace A.', email: 'grace@example.com' },
         { new: true },
       );
     });
@@ -213,6 +223,26 @@ describe('ProtocolMembersService', () => {
       await expect(
         service.update('member-1', { phone_number: mockMember.phone_number }),
       ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('updatePassword', () => {
+    it('writes the given hash directly, the only path allowed to touch password_hash', async () => {
+      model.findByIdAndUpdate.mockReturnValue({ exec: jest.fn().mockResolvedValue(mockMember) });
+
+      await service.updatePassword('member-1', 'new-hashed-password');
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith('member-1', {
+        password_hash: 'new-hashed-password',
+      });
+    });
+
+    it('throws NotFoundException when the member does not exist', async () => {
+      model.findByIdAndUpdate.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+
+      await expect(service.updatePassword('missing', 'new-hashed-password')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

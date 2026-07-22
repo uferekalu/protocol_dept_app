@@ -11,6 +11,7 @@ import { useAppDispatch } from '@/lib/redux/hooks';
 import { AUTH_TOKEN_STORAGE_KEY, setToken } from '@/lib/redux/slices/authSlice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 
 // Sign Up — self-service account creation (brief Section 4G, "revised from the
@@ -31,12 +32,16 @@ export default function SignupPage() {
     formState: { errors },
   } = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
-    defaultValues: { full_name: '', phone_number: '', password: '' },
+    defaultValues: { full_name: '', phone_number: '', password: '', confirm_password: '' },
   });
 
   async function onSubmit(values: SignupFormValues) {
     try {
-      const result = await signup(values).unwrap();
+      const result = await signup({
+        full_name: values.full_name,
+        phone_number: values.phone_number,
+        password: values.password,
+      }).unwrap();
       dispatch(setToken(result.access_token));
       window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, result.access_token);
       toast.success(`Welcome, ${result.protocol_member.full_name}`);
@@ -74,7 +79,10 @@ export default function SignupPage() {
           />
         </Field>
         <Field label="Password" error={errors.password?.message}>
-          <Input {...register('password')} type="password" autoComplete="new-password" />
+          <PasswordInput {...register('password')} autoComplete="new-password" />
+        </Field>
+        <Field label="Confirm password" error={errors.confirm_password?.message}>
+          <PasswordInput {...register('confirm_password')} autoComplete="new-password" />
         </Field>
 
         <Button type="submit" size="lg" className="mt-2 h-11 text-body font-semibold" disabled={isLoading}>

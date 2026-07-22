@@ -46,6 +46,12 @@ export class ProtocolMembersService {
     return this.protocolMemberModel.find().sort({ full_name: 1 }).exec();
   }
 
+  // Used only by AuthService.signup() to decide whether the very first account ever
+  // created becomes ADMIN (see that method's comment) — nothing else needs a raw count.
+  count(): Promise<number> {
+    return this.protocolMemberModel.countDocuments().exec();
+  }
+
   // Used only by AuthService.login() — the schema's `select: false` on password_hash
   // keeps it out of every other query by default, so login is the one deliberate,
   // narrow place that opts back in.
@@ -54,6 +60,13 @@ export class ProtocolMembersService {
       .findOne({ phone_number: phoneNumber })
       .select('+password_hash')
       .exec();
+  }
+
+  // Used only by AuthService.changePassword() — same select:false opt-in pattern as
+  // findByPhoneNumberWithPassword(), narrowed to "the currently authenticated user's
+  // own record" by the caller (never exposed as a way to fetch anyone else's hash).
+  findByIdWithPassword(id: string): Promise<ProtocolMemberDocument | null> {
+    return this.protocolMemberModel.findById(id).select('+password_hash').exec();
   }
 
   async findOne(id: string): Promise<ProtocolMemberDocument> {
@@ -82,16 +95,10 @@ export class ProtocolMembersService {
       }
     }
 
-    const { password, ...rest } = updateProtocolMemberDto;
-    const update: Record<string, unknown> = { ...rest };
-    if (password) {
-      update.password_hash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
-    }
-
     let member: ProtocolMemberDocument | null;
     try {
       member = await this.protocolMemberModel
-        .findByIdAndUpdate(id, update, { new: true })
+        .findByIdAndUpdate(id, updateProtocolMemberDto, { new: true })
         .exec();
     } catch (error) {
       throw this.translateDuplicateKeyError(error, updateProtocolMemberDto.phone_number);
@@ -100,6 +107,19 @@ export class ProtocolMembersService {
       throw new NotFoundException(`Protocol member ${id} not found`);
     }
     return member;
+  }
+
+  // The only path allowed to change password_hash — see AuthService.changePassword(),
+  // which does the "must differ from your current password" comparison before calling
+  // this. Never exposed via the general update() above (UpdateProtocolMemberDto has no
+  // password field).
+  async updatePassword(id: string, newPasswordHash: string): Promise<void> {
+    const result = await this.protocolMemberModel
+      .findByIdAndUpdate(id, { password_hash: newPasswordHash })
+      .exec();
+    if (!result) {
+      throw new NotFoundException(`Protocol member ${id} not found`);
+    }
   }
 
   async remove(id: string): Promise<void> {
