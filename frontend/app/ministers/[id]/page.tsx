@@ -20,6 +20,8 @@ import {
   useGetInvitationsByMinisterQuery,
   useGetMinisterQuery,
 } from '@/lib/redux/api';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
+import { isElevatedRole } from '@/lib/constants/protocol-member';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
@@ -45,6 +47,8 @@ export default function MinisterProfilePage() {
   const { data: invitations, isLoading: invitationsLoading } =
     useGetInvitationsByMinisterQuery(ministerId);
   const [deleteMinister, { isLoading: isDeleting }] = useDeleteMinisterMutation();
+  const { data: currentUser } = useCurrentUser();
+  const canManage = isElevatedRole(currentUser?.role);
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -109,33 +113,37 @@ export default function MinisterProfilePage() {
                 </p>
               )}
             </div>
-            <div className="flex shrink-0 gap-2">
-              <Button variant="outline" onClick={() => setEditOpen(true)} className="gap-1.5">
-                <Pencil className="size-4" />
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setDeleteOpen(true)}
-                className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
-              >
-                <Trash2 className="size-4" />
-                Delete
-              </Button>
-            </div>
+            {canManage && (
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => setEditOpen(true)} className="gap-1.5">
+                  <Pencil className="size-4" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteOpen(true)}
+                  className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                  Delete
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-heading-md text-foreground">Invitation history</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => router.push(`/invitations/new?minister_id=${ministerId}`)}
-            >
-              <Plus className="size-4" />
-              New Invitation
-            </Button>
+            {canManage && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => router.push(`/invitations/new?minister_id=${ministerId}`)}
+              >
+                <Plus className="size-4" />
+                New Invitation
+              </Button>
+            )}
           </div>
 
           {invitationsLoading && <Skeleton className="h-20 w-full rounded-xl" />}

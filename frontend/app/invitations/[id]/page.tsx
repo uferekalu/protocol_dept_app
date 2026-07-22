@@ -14,6 +14,8 @@ import {
   useGetProtocolMembersQuery,
   useGetStatusLogsByInvitationQuery,
 } from '@/lib/redux/api';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
+import { isElevatedRole } from '@/lib/constants/protocol-member';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
@@ -51,6 +53,8 @@ export default function InvitationDetailPage() {
   const { data: statusLogs, isLoading: logsLoading } = useGetStatusLogsByInvitationQuery(id);
   const { data: members } = useGetProtocolMembersQuery();
   const [deleteInvitation, { isLoading: isDeleting }] = useDeleteInvitationMutation();
+  const { data: currentUser } = useCurrentUser();
+  const canManage = isElevatedRole(currentUser?.role);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -106,24 +110,26 @@ export default function InvitationDetailPage() {
 
       {populatedInvitation && invitation && (
         <div className="flex flex-col gap-6">
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/invitations/${invitation._id}/edit`)}
-              className="gap-1.5"
-            >
-              <Pencil className="size-4" />
-              Edit
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpen(true)}
-              className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              <Trash2 className="size-4" />
-              Delete
-            </Button>
-          </div>
+          {canManage && (
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/invitations/${invitation._id}/edit`)}
+                className="gap-1.5"
+              >
+                <Pencil className="size-4" />
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteOpen(true)}
+                className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="size-4" />
+                Delete
+              </Button>
+            </div>
+          )}
 
           <InvitationCard invitation={populatedInvitation} />
 

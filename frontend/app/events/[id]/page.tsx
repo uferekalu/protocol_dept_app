@@ -20,6 +20,8 @@ import {
   useGetInvitationsByEventQuery,
   useLazyExportInvitationsByEventQuery,
 } from '@/lib/redux/api';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
+import { isElevatedRole } from '@/lib/constants/protocol-member';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
@@ -48,6 +50,8 @@ export default function EventDetailPage() {
     useGetInvitationsByEventQuery(eventId);
   const [deleteEvent, { isLoading: isDeleting }] = useDeleteEventMutation();
   const [exportInvitations, { isFetching: isExporting }] = useLazyExportInvitationsByEventQuery();
+  const { data: currentUser } = useCurrentUser();
+  const canManage = isElevatedRole(currentUser?.role);
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -127,7 +131,7 @@ export default function EventDetailPage() {
                 </p>
               )}
             </div>
-            <div className="flex shrink-0 flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 onClick={handleExport}
@@ -137,18 +141,22 @@ export default function EventDetailPage() {
                 <Download className="size-4" />
                 {isExporting ? 'Exporting…' : 'Export CSV'}
               </Button>
-              <Button variant="outline" onClick={() => setEditOpen(true)} className="gap-1.5">
-                <Pencil className="size-4" />
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setDeleteOpen(true)}
-                className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
-              >
-                <Trash2 className="size-4" />
-                Delete
-              </Button>
+              {canManage && (
+                <>
+                  <Button variant="outline" onClick={() => setEditOpen(true)} className="gap-1.5">
+                    <Pencil className="size-4" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setDeleteOpen(true)}
+                    className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="size-4" />
+                    Delete
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 

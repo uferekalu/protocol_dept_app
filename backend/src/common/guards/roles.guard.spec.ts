@@ -1,4 +1,4 @@
-import { ExecutionContext } from '@nestjs/common';
+import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RolesGuard } from './roles.guard';
 import { ProtocolMemberRole } from '../enums';
@@ -37,15 +37,20 @@ describe('RolesGuard', () => {
     expect(guard.canActivate(makeContext({ role: ProtocolMemberRole.COORDINATOR }))).toBe(true);
   });
 
-  it('denies the request when the user has none of the required roles', () => {
+  it('throws a ForbiddenException with a clear message when the user has none of the required roles', () => {
     reflector.getAllAndOverride.mockReturnValue([ProtocolMemberRole.ADMIN]);
 
-    expect(guard.canActivate(makeContext({ role: ProtocolMemberRole.MEMBER }))).toBe(false);
+    expect(() => guard.canActivate(makeContext({ role: ProtocolMemberRole.MEMBER }))).toThrow(
+      ForbiddenException,
+    );
+    expect(() => guard.canActivate(makeContext({ role: ProtocolMemberRole.MEMBER }))).toThrow(
+      /log out and log back in/,
+    );
   });
 
-  it('denies the request when there is no authenticated user at all', () => {
+  it('throws a ForbiddenException when there is no authenticated user at all', () => {
     reflector.getAllAndOverride.mockReturnValue([ProtocolMemberRole.ADMIN]);
 
-    expect(guard.canActivate(makeContext(undefined))).toBe(false);
+    expect(() => guard.canActivate(makeContext(undefined))).toThrow(ForbiddenException);
   });
 });

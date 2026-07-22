@@ -2,17 +2,21 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
+import { isElevatedRole } from '@/lib/constants/protocol-member';
 import { cn } from '@/lib/utils';
 
 // Desktop/tablet only (sm and up) — a horizontally-scrolling tab row. Below `sm`,
 // MobileNavDrawer takes over instead: a row of tabs read as cramped on a narrow phone
 // screen once a 4th link landed, per user feedback. Invitations has no top-level tab by
 // design — it's reached through a minister's profile, not browsed independently.
+// Assignments (the board) is ADMIN/COORDINATOR-only on the backend — a MEMBER's
+// equivalent is "My Assignments", which stays visible to everyone.
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard' },
   { href: '/ministers', label: 'Ministers' },
   { href: '/events', label: 'Events' },
-  { href: '/assignments', label: 'Assignments' },
+  { href: '/assignments', label: 'Assignments', elevatedOnly: true },
   { href: '/my-assignments', label: 'My Assignments' },
   { href: '/calendar', label: 'Calendar' },
   { href: '/reports', label: 'Reports' },
@@ -21,6 +25,17 @@ const NAV_LINKS = [
 
 export function AppNav() {
   const pathname = usePathname();
+  const { data: currentUser } = useCurrentUser();
+  const canManage = isElevatedRole(currentUser?.role);
+  const links = NAV_LINKS.filter((link) => !link.elevatedOnly || canManage);
+
+  // No confirmed identity, no nav — matches UserMenu's own "Log in" vs. name-and-role
+  // decision (both call useCurrentUser(), so this is the same signal, not a separate
+  // one). Gating on a raw token instead would show nav while the header still says
+  // "Log in" whenever the token is stale/expired or the backend is briefly
+  // unreachable — a real, confusing state a user could actually hit, not just a public
+  // route (AuthGuard lets /login, /signup, /forgot-password through unauthenticated).
+  if (!currentUser) return null;
 
   return (
     <nav
@@ -28,7 +43,7 @@ export function AppNav() {
       className="sticky top-14 z-30 hidden border-b border-border bg-background sm:block"
     >
       <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 sm:px-4">
-        {NAV_LINKS.map((link) => {
+        {links.map((link) => {
           const isActive = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
           return (
             <Link

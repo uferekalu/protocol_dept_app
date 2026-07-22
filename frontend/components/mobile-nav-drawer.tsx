@@ -16,16 +16,19 @@ import {
   Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
+import { isElevatedRole } from '@/lib/constants/protocol-member';
 import { cn } from '@/lib/utils';
 
 // Mirrors app-nav.tsx's link list — kept as a separate array (not shared) since the
 // two components' link shape differs (this one needs an icon per link, the desktop
-// tab row doesn't).
+// tab row doesn't). Assignments (the board) is ADMIN/COORDINATOR-only on the backend —
+// a MEMBER's equivalent is "My Assignments", which stays visible to everyone.
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/ministers', label: 'Ministers', icon: UserRound },
   { href: '/events', label: 'Events', icon: CalendarRange },
-  { href: '/assignments', label: 'Assignments', icon: ClipboardList },
+  { href: '/assignments', label: 'Assignments', icon: ClipboardList, elevatedOnly: true },
   { href: '/my-assignments', label: 'My Assignments', icon: ListChecks },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/reports', label: 'Reports', icon: ScrollText },
@@ -45,6 +48,9 @@ const STORAGE_KEY = 'protocol-department:mobile-nav-expanded';
 // shift.
 export function MobileNavDrawer() {
   const pathname = usePathname();
+  const { data: currentUser } = useCurrentUser();
+  const canManage = isElevatedRole(currentUser?.role);
+  const links = NAV_LINKS.filter((link) => !link.elevatedOnly || canManage);
   const [expanded, setExpanded] = useState(false);
   const navRef = useRef<HTMLElement>(null);
 
@@ -87,6 +93,12 @@ export function MobileNavDrawer() {
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [expanded]);
 
+  // No confirmed identity, no drawer — same reasoning as app-nav.tsx (matches
+  // UserMenu's own signal, not a raw token check that can go stale). Placed after
+  // every hook above so the hook call order never changes between renders (React's
+  // rules of hooks).
+  if (!currentUser) return null;
+
   return (
     <nav
       ref={navRef}
@@ -97,7 +109,7 @@ export function MobileNavDrawer() {
       )}
     >
       <div className="flex flex-col gap-1 p-2">
-        {NAV_LINKS.map((link) => {
+        {links.map((link) => {
           const isActive = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
           const Icon = link.icon;
           return (
