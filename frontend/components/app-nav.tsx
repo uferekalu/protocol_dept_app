@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-// Desktop/tablet only (sm and up) — a horizontally-scrolling tab row, simple and holds
-// up fine as more links get added (Reports still to land). Below `sm`,
+// Desktop/tablet only (sm and up) — a horizontally-scrolling tab row. Below `sm`,
 // MobileNavDrawer takes over instead: a row of tabs read as cramped on a narrow phone
 // screen once a 4th link landed, per user feedback. Invitations has no top-level tab by
 // design — it's reached through a minister's profile, not browsed independently.
@@ -16,6 +15,7 @@ const NAV_LINKS = [
   { href: '/assignments', label: 'Assignments' },
   { href: '/my-assignments', label: 'My Assignments' },
   { href: '/calendar', label: 'Calendar' },
+  { href: '/reports', label: 'Reports' },
   { href: '/team', label: 'Team' },
 ];
 

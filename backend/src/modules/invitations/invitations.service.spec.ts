@@ -218,6 +218,49 @@ describe('InvitationsService', () => {
     expect(result).toEqual(mockInvitation);
   });
 
+  describe('exportByEvent', () => {
+    const populatedInvitation = {
+      ...mockInvitation,
+      minister_id: { full_name: 'John Adebayo', phone_number: '+2348012345678' },
+    };
+
+    it('builds a CSV of invited ministers for the event, one row per invitation', async () => {
+      model.find.mockReturnValue(makeQuery([populatedInvitation]));
+
+      const { csv, filename } = await service.exportByEvent('event-1');
+
+      expect(eventsService.findOne).toHaveBeenCalledWith('event-1');
+      expect(filename).toBe('2026-Easter-Revival-ministers.csv');
+      expect(csv).toBe(
+        [
+          'Minister,Phone,Status,Arrival,Departure,Hotel',
+          'John Adebayo,+2348012345678,INVITED,2026-04-09,2026-04-14,Transcorp Hilton',
+        ].join('\n'),
+      );
+    });
+
+    it('quotes CSV values that contain a comma', async () => {
+      model.find.mockReturnValue(
+        makeQuery([
+          {
+            ...populatedInvitation,
+            hotel_name: 'Transcorp Hilton, Abuja',
+          },
+        ]),
+      );
+
+      const { csv } = await service.exportByEvent('event-1');
+
+      expect(csv).toContain('"Transcorp Hilton, Abuja"');
+    });
+
+    it('propagates NotFoundException when the event does not exist', async () => {
+      eventsService.findOne.mockRejectedValueOnce(new NotFoundException('Event event-1 not found'));
+
+      await expect(service.exportByEvent('event-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
   it('throws NotFoundException when the invitation does not exist', async () => {
     model.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
 

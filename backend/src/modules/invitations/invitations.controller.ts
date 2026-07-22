@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -9,8 +10,10 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { ApiBearerAuth, ApiConflictResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { InvitationsService } from './invitations.service';
 import { StatusLogsService } from '../status-logs/status-logs.service';
@@ -60,6 +63,23 @@ export class InvitationsController {
   @ApiOperation({ summary: 'List invitations not yet at Departed / Trip Completed' })
   findCurrentlyHosting() {
     return this.invitationsService.findCurrentlyHosting();
+  }
+
+  // Declared before ':id' so "export" is matched as this static path, not captured as
+  // an :id param — same reasoning as 'currently-hosting' above.
+  @Get('export')
+  @ApiOperation({ summary: 'Export the invited-minister list for an event as a CSV file' })
+  async exportByEvent(
+    @Query('event_id') eventId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<string> {
+    if (!eventId) {
+      throw new BadRequestException('event_id query parameter is required');
+    }
+    const { csv, filename } = await this.invitationsService.exportByEvent(eventId);
+    res.header('Content-Type', 'text/csv');
+    res.header('Content-Disposition', `attachment; filename="${filename}"`);
+    return csv;
   }
 
   @Get(':id')

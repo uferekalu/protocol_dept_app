@@ -11,6 +11,7 @@ import { StatusLogsModule } from './modules/status-logs/status-logs.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
 import { AssignmentsModule } from './modules/assignments/assignments.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 // Auth (Phase 5) is staged across PRs to avoid breaking the currently-unauthenticated
 // frontend mid-phase: this PR wires up login/JWT infrastructure only — no existing
@@ -34,6 +35,7 @@ import { AuthModule } from './modules/auth/auth.module';
     InvitationsModule,
     AssignmentsModule,
     AuthModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

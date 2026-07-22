@@ -22,6 +22,7 @@ import type {
 import type { CreateMinisterInput, Minister, UpdateMinisterInput } from '@/lib/types/minister';
 import type { CreateEventInput, Event, UpdateEventInput } from '@/lib/types/event';
 import type { StatusLog } from '@/lib/types/status-log';
+import type { ReportsStats } from '@/lib/types/report';
 import type {
   AuthenticatedProtocolMember,
   ChangePasswordInput,
@@ -351,6 +352,37 @@ export const api = createApi({
       query: (id) => ({ url: `/events/${id}`, method: 'DELETE' }),
       invalidatesTags: [{ type: 'Event', id: 'LIST' }],
     }),
+
+    // Powers /reports — every invitation ever created, minister/event populated.
+    getReportsHistory: builder.query<PopulatedInvitation[], void>({
+      query: () => '/reports/history',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((invitation) => ({ type: 'Invitation' as const, id: invitation._id })),
+              { type: 'Invitation' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Invitation' as const, id: 'LIST' }],
+    }),
+
+    getReportsStats: builder.query<ReportsStats, void>({
+      query: () => '/reports/stats',
+    }),
+
+    // Lazy query (triggered by the Export CSV button, not on mount) — the
+    // responseHandler reads the CSV body as text and pulls the server-generated
+    // filename from Content-Disposition rather than guessing one client-side.
+    exportInvitationsByEvent: builder.query<{ csv: string; filename: string }, string>({
+      query: (eventId) => ({
+        url: `/invitations/export?event_id=${eventId}`,
+        responseHandler: async (response: Response) => {
+          const csv = await response.text();
+          const disposition = response.headers.get('Content-Disposition') ?? '';
+          const filename = disposition.match(/filename="?([^"]+)"?/)?.[1] ?? 'invitations-export.csv';
+          return { csv, filename };
+        },
+      }),
+    }),
   }),
 });
 
@@ -387,4 +419,7 @@ export const {
   useCreateEventMutation,
   useUpdateEventMutation,
   useDeleteEventMutation,
+  useGetReportsHistoryQuery,
+  useGetReportsStatsQuery,
+  useLazyExportInvitationsByEventQuery,
 } = api;

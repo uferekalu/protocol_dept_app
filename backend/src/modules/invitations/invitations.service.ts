@@ -110,6 +110,36 @@ export class InvitationsService {
       .exec();
   }
 
+  // brief Section 4F "Exportable minister list per event" — plain CSV built by hand
+  // (no library needed at this row count/column count); the caller (InvitationsController)
+  // handles the HTTP response headers.
+  async exportByEvent(eventId: string): Promise<{ csv: string; filename: string }> {
+    const event = await this.eventsService.findOne(eventId);
+    const invitations = await this.findAll(undefined, eventId);
+
+    const header = ['Minister', 'Phone', 'Status', 'Arrival', 'Departure', 'Hotel'];
+    const rows = invitations.map((invitation) => {
+      const minister = invitation.minister_id as unknown as {
+        full_name: string;
+        phone_number: string;
+      };
+      return [
+        minister.full_name,
+        minister.phone_number,
+        invitation.status,
+        invitation.arrival_date.toISOString().slice(0, 10),
+        invitation.departure_date.toISOString().slice(0, 10),
+        invitation.hotel_name,
+      ];
+    });
+
+    const csv = [header, ...rows]
+      .map((row) => row.map((value) => this.escapeCsvValue(value)).join(','))
+      .join('\n');
+    const filename = `${event.name.replace(/[^a-z0-9]+/gi, '-')}-ministers.csv`;
+    return { csv, filename };
+  }
+
   async findOne(id: string): Promise<InvitationDocument> {
     const invitation = await this.invitationModel.findById(id).exec();
     if (!invitation) {
@@ -275,6 +305,13 @@ export class InvitationsService {
           .slice(0, 10)} to ${new Date(departureDate).toISOString().slice(0, 10)})`,
       );
     }
+  }
+
+  private escapeCsvValue(value: string): string {
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replace(/"/g, '""')}"`;
+    }
+    return value;
   }
 
   // Defense in depth: the pre-checks above prevent duplicates under normal load, but two
