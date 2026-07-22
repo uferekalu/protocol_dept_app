@@ -1,7 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import uiReducer from './slices/uiSlice';
-import sessionReducer from './slices/sessionSlice';
+import authReducer from './slices/authSlice';
 import { api } from './api';
 
 // Register feature slices here as they're built (invitationsSlice, etc. for
@@ -10,7 +10,7 @@ import { api } from './api';
 export const store = configureStore({
   reducer: {
     ui: uiReducer,
-    session: sessionReducer,
+    auth: authReducer,
     [api.reducerPath]: api.reducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(api.middleware),

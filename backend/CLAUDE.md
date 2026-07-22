@@ -67,13 +67,42 @@ general-purpose `PATCH /invitations/:id` used for editing hotel/date details.
 - JWT-based auth. `ProtocolMember` is both the "user" record and the domain entity — no
   need for a separate `User` collection.
 - Passwords hashed with `bcrypt` before storage, never stored or logged in plaintext.
-- Use a `RolesGuard` + a `@Roles(...)` decorator to enforce `ADMIN` / `COORDINATOR` /
-  `MEMBER` permissions per the brief's Section 4G. A `MEMBER` should only be able to see
-  and update their own assignments, not the full member directory or other people's
-  assignments.
-- Build auth last relative to the other modules per the brief's Phase 5 — but keep the
-  `ProtocolMember` schema itself (with a hashed password field) in place from Phase 1
-  since `Assignment` references it.
+- **Account creation is self-service, not admin-driven** — see the brief's Section 4G
+  ("Revised from the original spec"). `POST /auth/signup` is public (no guard), takes
+  `full_name` / `phone_number` / `password`, and always creates the record with
+  `role: MEMBER` — never accept a `role` field from the signup payload, even if one is
+  sent. Reuse `ProtocolMembersService.create()`'s hashing/duplicate-phone logic rather
+  than duplicating it in `AuthService`. Returns the same shape as `POST /auth/login`
+  (token + safe member) so the frontend can land the new member straight into a
+  logged-in session.
+- Use a `RolesGuard` + a `@Roles(...)` decorator (already built — `common/guards/`,
+  `common/decorators/`) to enforce `ADMIN` / `COORDINATOR` / `MEMBER` permissions per the
+  brief's Section 4G:
+  - `ADMIN` and `COORDINATOR` — full read/write on Minister, Event, Invitation,
+    Assignment. Only `ADMIN` may change a `ProtocolMember`'s `role` field (the
+    Member → Coordinator promotion path) or edit/delete an account that isn't their own.
+  - `MEMBER` — read-only on the member directory (`GET /protocol-members`,
+    `GET /protocol-members/:id`), can edit their *own* record's `full_name` /
+    `phone_number` / `password` but never their own `role`, and is scoped to their own
+    assignments (`GET /protocol-members/:id/assignments` and
+    `PATCH /assignments/:id/status` only where `id`/`protocol_member_id` matches
+    `request.user.sub`).
+  - The self-vs-admin distinction on `PATCH /protocol-members/:id` (own record, editable
+    minus `role`, vs. someone else's record, `ADMIN`-only, `role` includable) is
+    field/ownership-level authorization `RolesGuard` alone can't express — that logic
+    belongs in `ProtocolMembersService`/`ProtocolMembersController`, comparing
+    `request.user.sub` to the `:id` param and `request.user.role`, not a route-level
+    `@Roles()` alone.
+  - `POST /protocol-members` (direct admin-created account) stays `ADMIN`-only — not
+    removed, since an Admin may occasionally need to seed an account directly — but it's
+    no longer the primary/expected path for new Protocol Members and the frontend
+    doesn't build an "Add Protocol Member" UI around it. Sign-up is the primary path.
+- Built last relative to the other modules per the brief's Phase 5, and staged across
+  several PRs so the app is never left broken mid-phase: backend infrastructure first
+  (login/JWT, unguarded), then the frontend (login screen/session), then finally a PR
+  that adds `/auth/signup` and applies the guards above to the real endpoints. The
+  `ProtocolMember` schema itself (with a hashed password field) has been in place since
+  Phase 1 since `Assignment` references it.
 
 ## API conventions
 

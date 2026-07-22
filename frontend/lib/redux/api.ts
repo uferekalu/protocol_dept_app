@@ -1,4 +1,10 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import {
+  createApi,
+  fetchBaseQuery,
+  type BaseQueryFn,
+  type FetchArgs,
+  type FetchBaseQueryError,
+} from '@reduxjs/toolkit/query/react';
 import type {
   CreateInvitationInput,
   Invitation,
@@ -16,15 +22,42 @@ import type {
 import type { CreateMinisterInput, Minister, UpdateMinisterInput } from '@/lib/types/minister';
 import type { Event } from '@/lib/types/event';
 import type { StatusLog } from '@/lib/types/status-log';
+import type { AuthenticatedProtocolMember, LoginInput, LoginResponse } from '@/lib/types/auth';
+import type { RootState } from './store';
+import { clearToken } from './slices/authSlice';
+
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api',
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as RootState).auth.token;
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    return headers;
+  },
+});
+
+// Any 401 (expired token, or — once the backend's guards land — a route that now
+// requires auth) clears the session, so a stale/invalid token can't linger and every
+// consumer of useCurrentUser() reacts the same way an explicit logout would produce.
+const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
+  args,
+  api,
+  extraOptions,
+) => {
+  const result = await rawBaseQuery(args, api, extraOptions);
+  if (result.error?.status === 401) {
+    api.dispatch(clearToken());
+  }
+  return result;
+};
 
 // Single RTK Query API slice for all server state, per frontend/CLAUDE.md — "pick RTK
 // Query and use it consistently," not a mix of ad hoc fetches. Endpoints are added
 // here as each screen needs them, grouped by backend resource.
 export const api = createApi({
   reducerPath: 'api',
-  baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api',
-  }),
+  baseQuery: baseQueryWithReauth,
   // A live dashboard should pick up changes another protocol member just made —
   // refetch when the tab regains focus or the connection comes back, on top of the
   // usual tag-based invalidation. Paired with setupListeners(store.dispatch) in
@@ -33,6 +66,14 @@ export const api = createApi({
   refetchOnReconnect: true,
   tagTypes: ['Invitation', 'ProtocolMember', 'Assignment', 'Minister', 'Event', 'StatusLog'],
   endpoints: (builder) => ({
+    login: builder.mutation<LoginResponse, LoginInput>({
+      query: (body) => ({ url: '/auth/login', method: 'POST', body }),
+    }),
+
+    getCurrentUser: builder.query<AuthenticatedProtocolMember, void>({
+      query: () => '/auth/me',
+    }),
+
     getMinisters: builder.query<Minister[], void>({
       query: () => '/ministers',
       providesTags: (result) =>
@@ -244,6 +285,8 @@ export const api = createApi({
 });
 
 export const {
+  useLoginMutation,
+  useGetCurrentUserQuery,
   useGetMinistersQuery,
   useGetMinisterQuery,
   useCreateMinisterMutation,

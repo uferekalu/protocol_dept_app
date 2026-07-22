@@ -1,11 +1,12 @@
 'use client';
 
 import { useMemo } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusStepper } from '@/components/status-stepper';
-import { useAppSelector } from '@/lib/redux/hooks';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import {
   useGetAssignmentsByInvitationQuery,
   useGetProtocolMembersQuery,
@@ -49,7 +50,7 @@ function resolveResponsibleAssignment(
 }
 
 export function InvitationCard({ invitation }: { invitation: PopulatedInvitation }) {
-  const actingAsId = useAppSelector((state) => state.session.actingAsId);
+  const { data: currentUser } = useCurrentUser();
   const { data: assignments } = useGetAssignmentsByInvitationQuery(invitation._id);
   const { data: members } = useGetProtocolMembersQuery();
   const [updateStatus, { isLoading: isUpdating }] = useUpdateInvitationStatusMutation();
@@ -63,12 +64,16 @@ export function InvitationCard({ invitation }: { invitation: PopulatedInvitation
   const nextStatuses = VALID_STATUS_TRANSITIONS[invitation.status];
 
   async function handleAdvance(nextStatus: InvitationStatus) {
-    if (!actingAsId) {
-      toast.error('Select who you are in the header first.');
+    if (!currentUser) {
+      toast.error('Log in to update status.');
       return;
     }
     try {
-      await updateStatus({ id: invitation._id, status: nextStatus, updated_by: actingAsId }).unwrap();
+      await updateStatus({
+        id: invitation._id,
+        status: nextStatus,
+        updated_by: currentUser._id,
+      }).unwrap();
       toast.success(`${invitation.minister_id.full_name}: ${STATUS_ACTION_LABELS[nextStatus]}`);
     } catch (error) {
       const message =
@@ -105,7 +110,7 @@ export function InvitationCard({ invitation }: { invitation: PopulatedInvitation
                 key={next}
                 size="lg"
                 onClick={() => handleAdvance(next)}
-                disabled={isUpdating || !actingAsId}
+                disabled={isUpdating || !currentUser}
                 className="h-11 text-body font-semibold"
               >
                 {STATUS_ACTION_LABELS[next]}
@@ -115,9 +120,12 @@ export function InvitationCard({ invitation }: { invitation: PopulatedInvitation
         ) : (
           <p className="text-caption text-muted-foreground">Trip completed.</p>
         )}
-        {!actingAsId && nextStatuses.length > 0 && (
+        {!currentUser && nextStatuses.length > 0 && (
           <p className="text-caption text-muted-foreground">
-            Select who you are in the header to update status.
+            <Link href="/login" className="text-primary hover:underline">
+              Log in
+            </Link>{' '}
+            to update status.
           </p>
         )}
       </CardContent>

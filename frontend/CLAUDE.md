@@ -169,6 +169,16 @@ API to call against:
 7. **Calendar (`/calendar`)** — arrivals, departures, preaching dates at a glance.
 8. **Events (`/events`, `/events/[id]`)**.
 9. **Reports/archive (`/reports`)** — build last, per Phase 6.
+10. **Login (`/login`)** — built. **Sign up (`/signup`)** — self-service account
+    creation (full name, phone number, password); always lands as `MEMBER`, the role is
+    never a form field. Both are Phase 5, staged after the core tracking screens per the
+    brief's Section 7 — see backend/CLAUDE.md's "Auth & roles" for why sign-up replaced
+    admin-created accounts and how the three-PR staging worked.
+11. **Member directory (`/team`)** — read-only list of everyone in the department, open
+    to every logged-in role. **My profile (`/profile`)** — edit your own `full_name` /
+    `phone_number` / password; an Admin viewing someone else's entry can additionally
+    change that person's role (the Member → Coordinator promotion path) — no one else
+    can change a role, including their own.
 
 ## Forms
 
