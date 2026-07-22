@@ -154,27 +154,49 @@ Each status change must:
 - Exportable minister list per event
 
 ### G. User Roles & Access
-- **Admin** — full access, manages events, ministers, and member accounts
-- **Coordinator** — creates invitations, assigns members, views all dashboards
-- **Protocol Member/Driver** — sees only their own assignments, updates status for
-  their assigned legs
+
+> **Revised from the original spec** (see Section 7's Phase 5 note): account creation is
+> self-service, not admin-driven. The department announces (e.g. in church) that it
+> needs Protocol volunteers; anyone interested joins by visiting the app and signing up
+> themselves, rather than an Admin or Coordinator creating their account for them.
+
+- **Sign-up is self-service.** A prospective Protocol Member creates their own account
+  (full name, phone number, password) via the Sign Up screen. Every self-registered
+  account starts as **Member** — the role is never user-selectable at sign-up, to
+  prevent privilege escalation.
+- **Admin** — full access: manages events, ministers, invitations, and assignments. The
+  *only* role that can change another member's role (e.g. promoting a Member to
+  Coordinator). Neither Admin nor Coordinator creates member accounts on someone else's
+  behalf.
+- **Coordinator** — creates/edits events, ministers, and invitations; assigns members to
+  trip legs; views all dashboards. Same operational scope as Admin *except* it cannot
+  change anyone's role or edit another member's account.
+- **Protocol Member/Driver** — can view the member directory read-only (everyone can see
+  who else is in the department) and edit their own profile, but sees and updates only
+  the assignments assigned to them. Cannot create/edit Ministers, Events, Invitations, or
+  Assignments, and cannot edit anyone else's account.
 - (v2) **View-only** role for church leadership
 
 ---
 
 ## 5. Suggested Screens
 
-1. **Login** (role-based access)
-2. **Dashboard** — "Currently Hosting" live overview (cards per minister with status +
+1. **Sign Up** — self-service account creation (full name, phone number, password);
+   always creates a Member account
+2. **Login** (role-based access)
+3. **Dashboard** — "Currently Hosting" live overview (cards per minister with status +
    assigned member)
-3. **Minister Profile** — details, invitation history
-4. **Create/Edit Invitation** — event link, dates, hotel info, preaching schedule
-5. **Assignment Board** — assign Protocol members to each leg
-6. **My Assignments** — personal view for each Protocol member
-7. **Status Timeline** — per-invitation history log
-8. **Calendar View**
-9. **Events List / Event Detail** (Revival, Crusade, etc.)
-10. **Reports/History Archive**
+4. **Minister Profile** — details, invitation history
+5. **Create/Edit Invitation** — event link, dates, hotel info, preaching schedule
+6. **Assignment Board** — assign Protocol members to each leg
+7. **My Assignments** — personal view for each Protocol member
+8. **Status Timeline** — per-invitation history log
+9. **Calendar View**
+10. **Events List / Event Detail** (Revival, Crusade, etc.)
+11. **Member Directory** — read-only list of everyone in the department; **My Profile**
+    for editing your own account (Admin can additionally change another member's role
+    from here)
+12. **Reports/History Archive**
 
 ---
 
@@ -183,7 +205,8 @@ Each status change must:
 - **Frontend:** Next.js (App Router) + TypeScript + Redux Toolkit + Tailwind CSS +
   shadcn/ui (Radix primitives) + react-hook-form + zod for validation
 - **Backend:** NestJS + TypeScript + MongoDB via Mongoose
-- **Auth:** JWT-based, role-based guards (Admin / Coordinator / Protocol Member)
+- **Auth:** JWT-based, self-service sign-up (every new account starts as Member),
+  role-based guards (Admin / Coordinator / Protocol Member), admin-only role promotion
 - **API style:** REST, documented with Swagger (`@nestjs/swagger`)
 
 ---
@@ -197,7 +220,11 @@ Each status change must:
 3. **Phase 3 — Assignments:** Assignment board + "My Assignments" view.
 4. **Phase 4 — Scheduling:** Calendar view, preaching-date sub-cycles, days-count
    auto-calculation.
-5. **Phase 5 — Auth & Roles:** Login, role-based permissions, guards.
+5. **Phase 5 — Auth & Roles:** Self-service sign-up (every new account starts as
+   Member), login, role-based permissions and guards, admin-only role promotion. Staged
+   across several PRs to avoid ever leaving the app in a broken state: backend
+   infrastructure first (unguarded), then the frontend (login/session), then finally
+   applying guards + building sign-up once both sides are proven working together.
 6. **Phase 6 — Polish:** Notifications/reminders, reports, historical archive, export.
 
 Build and verify each phase before moving to the next. Don't jump ahead to polish while
