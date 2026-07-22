@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -49,18 +48,10 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex max-w-sm flex-col px-4 py-16 sm:py-24">
-      <div className="mb-8 flex flex-col items-center text-center">
-        <Image
-          src="/pcn-logo.png"
-          alt="Presbyterian Church of Nigeria"
-          width={57}
-          height={40}
-          priority
-          className="mb-3 h-10 w-auto"
-        />
-        <h1 className="text-heading-lg text-foreground">Protocol Department</h1>
+      <div className="mb-8 text-center">
+        <h1 className="text-heading-lg text-foreground">Log in</h1>
         <p className="text-body-sm text-muted-foreground">
-          Log in with your phone number and password.
+          Enter your phone number and password.
         </p>
       </div>
 
