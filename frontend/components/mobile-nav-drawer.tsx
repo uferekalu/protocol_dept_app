@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   CalendarDays,
+  CalendarRange,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -22,6 +23,7 @@ import { cn } from '@/lib/utils';
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/ministers', label: 'Ministers', icon: UserRound },
+  { href: '/events', label: 'Events', icon: CalendarRange },
   { href: '/assignments', label: 'Assignments', icon: ClipboardList },
   { href: '/my-assignments', label: 'My Assignments', icon: ListChecks },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
