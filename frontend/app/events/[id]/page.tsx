@@ -3,12 +3,22 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { AlertTriangle, ArrowLeft, CalendarRange, ChevronRight, MapPin, Pencil, Trash2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CalendarRange,
+  ChevronRight,
+  Download,
+  MapPin,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useDeleteEventMutation,
   useGetEventQuery,
   useGetInvitationsByEventQuery,
+  useLazyExportInvitationsByEventQuery,
 } from '@/lib/redux/api';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,6 +47,7 @@ export default function EventDetailPage() {
   const { data: invitations, isLoading: invitationsLoading } =
     useGetInvitationsByEventQuery(eventId);
   const [deleteEvent, { isLoading: isDeleting }] = useDeleteEventMutation();
+  const [exportInvitations, { isFetching: isExporting }] = useLazyExportInvitationsByEventQuery();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -48,6 +59,24 @@ export default function EventDetailPage() {
       router.push('/events');
     } catch {
       toast.error('Could not delete this event.');
+    }
+  }
+
+  // Triggers a browser download of the CSV text RTK Query already fetched (with the
+  // Authorization header attached) — a plain <a href> can't carry that header, so the
+  // file has to be fetched via JS first and then handed to the browser as a Blob.
+  async function handleExport() {
+    try {
+      const { csv, filename } = await exportInvitations(eventId).unwrap();
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Could not export the minister list.');
     }
   }
 
@@ -98,7 +127,16 @@ export default function EventDetailPage() {
                 </p>
               )}
             </div>
-            <div className="flex shrink-0 gap-2">
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExport}
+                disabled={isExporting || invitationsLoading || !invitations?.length}
+                className="gap-1.5"
+              >
+                <Download className="size-4" />
+                {isExporting ? 'Exporting…' : 'Export CSV'}
+              </Button>
               <Button variant="outline" onClick={() => setEditOpen(true)} className="gap-1.5">
                 <Pencil className="size-4" />
                 Edit

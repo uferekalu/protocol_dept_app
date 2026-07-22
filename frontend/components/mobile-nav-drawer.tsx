@@ -11,6 +11,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   ListChecks,
+  ScrollText,
   UserRound,
   Users,
 } from 'lucide-react';
@@ -27,6 +28,7 @@ const NAV_LINKS = [
   { href: '/assignments', label: 'Assignments', icon: ClipboardList },
   { href: '/my-assignments', label: 'My Assignments', icon: ListChecks },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { href: '/reports', label: 'Reports', icon: ScrollText },
   { href: '/team', label: 'Team', icon: Users },
 ];
 

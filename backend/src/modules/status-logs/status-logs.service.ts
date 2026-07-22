@@ -31,6 +31,14 @@ export class StatusLogsService {
       .exec();
   }
 
+  // Used only by ReportsService — every log across every invitation, unfiltered, so it
+  // can compute "most active protocol member" and "average pickup-to-check-in time" in
+  // application code rather than a Mongo aggregation pipeline. Fine at this app's scale
+  // (a single department's event history, not a high-volume dataset).
+  findAll(): Promise<StatusLogDocument[]> {
+    return this.statusLogModel.find().sort({ timestamp: 1 }).exec();
+  }
+
   async findOne(id: string): Promise<StatusLogDocument> {
     const log = await this.statusLogModel.findById(id).exec();
     if (!log) {
