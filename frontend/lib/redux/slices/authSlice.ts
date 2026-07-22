@@ -5,7 +5,7 @@ export const AUTH_TOKEN_STORAGE_KEY = 'protocol-department:auth-token';
 // Holds only the JWT — the authenticated member's profile is never duplicated here,
 // it's just the cached result of useGetCurrentUserQuery() (GET /auth/me), consumed via
 // lib/hooks/use-current-user.ts. Persisted to localStorage by whoever sets/clears it
-// (the login page, AuthHydrator on mount, and the logout action), same pattern as the
+// (the login page, AuthGuard on mount, and the logout action), same pattern as the
 // old sessionSlice/acting-as-picker.tsx it replaces.
 interface AuthState {
   token: string | null;

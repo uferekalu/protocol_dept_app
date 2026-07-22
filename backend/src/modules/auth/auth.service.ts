@@ -1,11 +1,14 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { ProtocolMembersService } from '../protocol-members/protocol-members.service';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { ProtocolMemberRole } from '../../common/enums';
+
+const BCRYPT_SALT_ROUNDS = 10;
 
 // Safe, public shape of a protocol member — explicitly hand-picked fields rather than
 // returning the Mongoose document directly, so this stays correct even if the schema's
@@ -53,14 +56,18 @@ export class AuthService {
   }
 
   // Self-service account creation (brief Section 4G, "revised from the original
-  // spec") — always MEMBER, never accepts a role from the caller. Reuses
-  // ProtocolMembersService.create() for hashing + duplicate-phone handling rather than
-  // duplicating that logic here. Returns the same shape as login() so the frontend can
-  // land the new member straight into a logged-in session.
+  // spec") — never accepts a role from the caller. The very first account ever
+  // created becomes ADMIN (the app's only in-product bootstrap path — see
+  // backend/CLAUDE.md); every one after that becomes MEMBER, promotable later only by
+  // an existing ADMIN. Reuses ProtocolMembersService.create() for hashing +
+  // duplicate-phone handling rather than duplicating that logic here. Returns the same
+  // shape as login() so the frontend can land the new member straight into a
+  // logged-in session.
   async signup(signupDto: SignupDto): Promise<LoginResult> {
+    const isFirstAccount = (await this.protocolMembersService.count()) === 0;
     const member = await this.protocolMembersService.create({
       ...signupDto,
-      role: ProtocolMemberRole.MEMBER,
+      role: isFirstAccount ? ProtocolMemberRole.ADMIN : ProtocolMemberRole.MEMBER,
     });
 
     const payload: JwtPayload = { sub: member._id.toString(), role: member.role };
@@ -73,6 +80,30 @@ export class AuthService {
   async getCurrentUser(protocolMemberId: string): Promise<AuthenticatedProtocolMember> {
     const member = await this.protocolMembersService.findOne(protocolMemberId);
     return this.toSafeMember(member);
+  }
+
+  // No current-password field — see ChangePasswordDto's comment. Guards against the
+  // one thing that IS enforced: the new password can't be the same as the one already
+  // in place.
+  async changePassword(
+    protocolMemberId: string,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<void> {
+    const member = await this.protocolMembersService.findByIdWithPassword(protocolMemberId);
+    if (!member) {
+      throw new UnauthorizedException();
+    }
+
+    const isSameAsCurrent = await bcrypt.compare(
+      changePasswordDto.new_password,
+      member.password_hash,
+    );
+    if (isSameAsCurrent) {
+      throw new BadRequestException('New password must be different from your current password');
+    }
+
+    const password_hash = await bcrypt.hash(changePasswordDto.new_password, BCRYPT_SALT_ROUNDS);
+    await this.protocolMembersService.updatePassword(protocolMemberId, password_hash);
   }
 
   private toSafeMember(member: {

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +11,7 @@ import { useAppDispatch } from '@/lib/redux/hooks';
 import { AUTH_TOKEN_STORAGE_KEY, setToken } from '@/lib/redux/slices/authSlice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 
 // Login — Phase 5 (docs/PROTOCOL_APP_BRIEF.md Section 7). Phone number + password
@@ -65,13 +67,26 @@ export default function LoginPage() {
           />
         </Field>
         <Field label="Password" error={errors.password?.message}>
-          <Input {...register('password')} type="password" autoComplete="current-password" />
+          <PasswordInput {...register('password')} autoComplete="current-password" />
         </Field>
+
+        <div className="text-right">
+          <Link href="/forgot-password" className="text-body-sm text-primary hover:underline">
+            Forgot password?
+          </Link>
+        </div>
 
         <Button type="submit" size="lg" className="mt-2 h-11 text-body font-semibold" disabled={isLoading}>
           {isLoading ? 'Logging in…' : 'Log in'}
         </Button>
       </form>
+
+      <p className="text-body-sm mt-6 text-center text-muted-foreground">
+        New to the Protocol Department?{' '}
+        <Link href="/signup" className="text-primary hover:underline">
+          Sign up
+        </Link>
+      </p>
     </main>
   );
 }

@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   ListChecks,
   UserRound,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ const NAV_LINKS = [
   { href: '/assignments', label: 'Assignments', icon: ClipboardList },
   { href: '/my-assignments', label: 'My Assignments', icon: ListChecks },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { href: '/team', label: 'Team', icon: Users },
 ];
 
 const STORAGE_KEY = 'protocol-department:mobile-nav-expanded';

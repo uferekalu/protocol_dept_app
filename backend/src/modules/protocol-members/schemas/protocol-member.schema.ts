@@ -12,6 +12,16 @@ export class ProtocolMember {
   @Prop({ required: true, trim: true, unique: true })
   phone_number: string;
 
+  // Optional — a member may add one to their own profile; never required for sign-up.
+  @Prop({ trim: true, lowercase: true })
+  email?: string;
+
+  // Optional Cloudinary URL for a profile photo. The upload UI/widget is not built yet
+  // (pending a Cloudinary account) — this field just makes the member directory/profile
+  // screens' "image if uploaded, else avatar icon" fallback logic ready for it.
+  @Prop({ trim: true })
+  image_url?: string;
+
   @Prop({ required: true, enum: ProtocolMemberRole })
   role: ProtocolMemberRole;
 

@@ -1,6 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl, Matches } from 'class-validator';
 import { ProtocolMemberRole } from '../../../common/enums';
+import {
+  PASSWORD_REGEX,
+  PASSWORD_REQUIREMENTS_MESSAGE,
+} from '../../../common/validators/password.constants';
 
 export class CreateProtocolMemberDto {
   @ApiProperty({ example: 'Grace Adeyemi' })
@@ -13,17 +17,26 @@ export class CreateProtocolMemberDto {
   @IsNotEmpty()
   phone_number: string;
 
+  @ApiPropertyOptional({ example: 'grace.adeyemi@example.com' })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @ApiPropertyOptional({ example: 'https://res.cloudinary.com/.../grace.jpg' })
+  @IsOptional()
+  @IsUrl()
+  image_url?: string;
+
   @ApiProperty({ enum: ProtocolMemberRole, example: ProtocolMemberRole.MEMBER })
   @IsEnum(ProtocolMemberRole)
   role: ProtocolMemberRole;
 
   @ApiProperty({
     format: 'password',
-    minLength: 8,
-    description: 'Plaintext password; hashed before storage and never returned by the API.',
-    example: 'a-strong-password',
+    description: PASSWORD_REQUIREMENTS_MESSAGE,
+    example: 'A-strong-p4ssword!',
   })
   @IsString()
-  @MinLength(8)
+  @Matches(PASSWORD_REGEX, { message: PASSWORD_REQUIREMENTS_MESSAGE })
   password: string;
 }
