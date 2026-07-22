@@ -48,9 +48,12 @@ export class InvitationsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all invitations, optionally filtered by minister' })
-  findAll(@Query('minister_id') ministerId?: string) {
-    return this.invitationsService.findAll(ministerId);
+  @ApiOperation({ summary: 'List all invitations, optionally filtered by minister and/or event' })
+  findAll(
+    @Query('minister_id') ministerId?: string,
+    @Query('event_id') eventId?: string,
+  ) {
+    return this.invitationsService.findAll(ministerId, eventId);
   }
 
   @Get('currently-hosting')

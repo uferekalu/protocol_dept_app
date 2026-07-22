@@ -181,6 +181,25 @@ describe('InvitationsService', () => {
     expect(model.find).toHaveBeenCalledWith({ minister_id: 'minister-1' });
   });
 
+  it('filters invitations by event_id when provided', async () => {
+    model.find.mockReturnValue(makeQuery([mockInvitation]));
+
+    await service.findAll(undefined, 'event-1');
+
+    expect(model.find).toHaveBeenCalledWith({ event_id: 'event-1' });
+  });
+
+  it('filters invitations by both minister_id and event_id when both are provided', async () => {
+    model.find.mockReturnValue(makeQuery([mockInvitation]));
+
+    await service.findAll('minister-1', 'event-1');
+
+    expect(model.find).toHaveBeenCalledWith({
+      minister_id: 'minister-1',
+      event_id: 'event-1',
+    });
+  });
+
   it('finds currently-hosting invitations (status not DEPARTED_TRIP_COMPLETED)', async () => {
     model.find.mockReturnValue(makeQuery([mockInvitation]));
 

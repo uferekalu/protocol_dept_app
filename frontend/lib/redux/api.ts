@@ -20,7 +20,7 @@ import type {
   UpdateAssignmentStatusInput,
 } from '@/lib/types/assignment';
 import type { CreateMinisterInput, Minister, UpdateMinisterInput } from '@/lib/types/minister';
-import type { Event } from '@/lib/types/event';
+import type { CreateEventInput, Event, UpdateEventInput } from '@/lib/types/event';
 import type { StatusLog } from '@/lib/types/status-log';
 import type {
   AuthenticatedProtocolMember,
@@ -132,6 +132,18 @@ export const api = createApi({
     // Powers the Minister Profile screen's invitation-history section.
     getInvitationsByMinister: builder.query<PopulatedInvitation[], string>({
       query: (ministerId) => `/invitations?minister_id=${ministerId}`,
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((invitation) => ({ type: 'Invitation' as const, id: invitation._id })),
+              { type: 'Invitation' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Invitation' as const, id: 'LIST' }],
+    }),
+
+    // Powers the Event Detail screen's "who's invited to this event" section.
+    getInvitationsByEvent: builder.query<PopulatedInvitation[], string>({
+      query: (eventId) => `/invitations?event_id=${eventId}`,
       providesTags: (result) =>
         result
           ? [
@@ -304,9 +316,8 @@ export const api = createApi({
       ],
     }),
 
-    // No Events screens yet (frontend/CLAUDE.md's screen order builds those later) —
-    // this list only feeds the event picker on the Invitation create/edit form. Events
-    // are created via Swagger (/api/docs) in the meantime.
+    // Feeds both the /events screens and the event picker on the Invitation
+    // create/edit form.
     getEvents: builder.query<Event[], void>({
       query: () => '/events',
       providesTags: (result) =>
@@ -322,6 +333,24 @@ export const api = createApi({
       query: (id) => `/events/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'Event', id }],
     }),
+
+    createEvent: builder.mutation<Event, CreateEventInput>({
+      query: (body) => ({ url: '/events', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Event', id: 'LIST' }],
+    }),
+
+    updateEvent: builder.mutation<Event, { id: string } & UpdateEventInput>({
+      query: ({ id, ...body }) => ({ url: `/events/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Event', id },
+        { type: 'Event', id: 'LIST' },
+      ],
+    }),
+
+    deleteEvent: builder.mutation<void, string>({
+      query: (id) => ({ url: `/events/${id}`, method: 'DELETE' }),
+      invalidatesTags: [{ type: 'Event', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -336,6 +365,7 @@ export const {
   useUpdateMinisterMutation,
   useDeleteMinisterMutation,
   useGetInvitationsByMinisterQuery,
+  useGetInvitationsByEventQuery,
   useGetCurrentlyHostingQuery,
   useGetInvitationQuery,
   useCreateInvitationMutation,
@@ -354,4 +384,7 @@ export const {
   useDeleteAssignmentMutation,
   useGetEventsQuery,
   useGetEventQuery,
+  useCreateEventMutation,
+  useUpdateEventMutation,
+  useDeleteEventMutation,
 } = api;
