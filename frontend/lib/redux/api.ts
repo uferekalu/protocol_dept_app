@@ -243,6 +243,31 @@ export const api = createApi({
       ],
     }),
 
+    // FormData body — fetchBaseQuery leaves it untouched and lets the browser set the
+    // multipart/form-data boundary header itself (setting Content-Type manually would
+    // omit the boundary and break the upload).
+    uploadProtocolMemberPhoto: builder.mutation<ProtocolMember, { id: string; file: File }>({
+      query: ({ id, file }) => {
+        const formData = new FormData();
+        formData.append('photo', file);
+        return { url: `/protocol-members/${id}/photo`, method: 'POST', body: formData };
+      },
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'ProtocolMember', id },
+        { type: 'ProtocolMember', id: 'LIST' },
+        { type: 'ProtocolMember', id: 'ME' },
+      ],
+    }),
+
+    removeProtocolMemberPhoto: builder.mutation<ProtocolMember, string>({
+      query: (id) => ({ url: `/protocol-members/${id}/photo`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'ProtocolMember', id },
+        { type: 'ProtocolMember', id: 'LIST' },
+        { type: 'ProtocolMember', id: 'ME' },
+      ],
+    }),
+
     getAssignmentsByInvitation: builder.query<Assignment[], string>({
       query: (invitationId) => `/invitations/${invitationId}/assignments`,
       providesTags: (result, _error, invitationId) => [
@@ -408,6 +433,8 @@ export const {
   useGetProtocolMembersQuery,
   useGetProtocolMemberQuery,
   useUpdateProtocolMemberMutation,
+  useUploadProtocolMemberPhotoMutation,
+  useRemoveProtocolMemberPhotoMutation,
   useGetAssignmentsByInvitationQuery,
   useGetAssignmentsByProtocolMemberQuery,
   useCreateAssignmentMutation,

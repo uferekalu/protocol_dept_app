@@ -109,6 +109,32 @@ export class ProtocolMembersService {
     return member;
   }
 
+  // The only two paths allowed to change image_url — see
+  // ProtocolMembersController.uploadPhoto()/removePhoto(). Kept separate from the
+  // general update() so a Cloudinary secure_url set here never has to satisfy
+  // UpdateProtocolMemberDto's @IsUrl() validation on a value we generated ourselves,
+  // and so removal can $unset the field outright instead of fighting `undefined` being
+  // stripped from a Mongoose update payload.
+  async setPhoto(id: string, imageUrl: string): Promise<ProtocolMemberDocument> {
+    const member = await this.protocolMemberModel
+      .findByIdAndUpdate(id, { image_url: imageUrl }, { new: true })
+      .exec();
+    if (!member) {
+      throw new NotFoundException(`Protocol member ${id} not found`);
+    }
+    return member;
+  }
+
+  async removePhoto(id: string): Promise<ProtocolMemberDocument> {
+    const member = await this.protocolMemberModel
+      .findByIdAndUpdate(id, { $unset: { image_url: 1 } }, { new: true })
+      .exec();
+    if (!member) {
+      throw new NotFoundException(`Protocol member ${id} not found`);
+    }
+    return member;
+  }
+
   // The only path allowed to change password_hash — see AuthService.changePassword(),
   // which does the "must differ from your current password" comparison before calling
   // this. Never exposed via the general update() above (UpdateProtocolMemberDto has no
