@@ -1,14 +1,19 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { randomInt } from 'crypto';
 import { ProtocolMembersService } from '../protocol-members/protocol-members.service';
+import { TermiiService } from '../../common/termii/termii.service';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { ProtocolMemberRole } from '../../common/enums';
 
 const BCRYPT_SALT_ROUNDS = 10;
+const OTP_EXPIRY_MINUTES = 10;
 
 // Safe, public shape of a protocol member — explicitly hand-picked fields rather than
 // returning the Mongoose document directly, so this stays correct even if the schema's
@@ -31,6 +36,7 @@ export class AuthService {
   constructor(
     private protocolMembersService: ProtocolMembersService,
     private jwtService: JwtService,
+    private termiiService: TermiiService,
   ) {}
 
   async login(loginDto: LoginDto): Promise<LoginResult> {
@@ -104,6 +110,57 @@ export class AuthService {
 
     const password_hash = await bcrypt.hash(changePasswordDto.new_password, BCRYPT_SALT_ROUNDS);
     await this.protocolMembersService.updatePassword(protocolMemberId, password_hash);
+  }
+
+  // Always resolves the same way regardless of whether the phone number has an
+  // account — same "don't reveal which part was wrong" principle as login()'s generic
+  // message — so this can never be used to enumerate registered phone numbers. If an
+  // account does exist, generates a 6-digit OTP, hashes it (never stored raw), and
+  // texts the plain code via TermiiService (itself best-effort — see its own comment).
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<void> {
+    const member = await this.protocolMembersService.findByPhoneNumber(
+      forgotPasswordDto.phone_number,
+    );
+    if (!member) {
+      return;
+    }
+
+    const otp = String(randomInt(0, 1_000_000)).padStart(6, '0');
+    const otp_hash = await bcrypt.hash(otp, BCRYPT_SALT_ROUNDS);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    await this.protocolMembersService.setResetOtp(member._id.toString(), otp_hash, expiresAt);
+
+    await this.termiiService.sendSms(
+      member.phone_number,
+      `Your Protocol Department password reset code is ${otp}. It expires in ${OTP_EXPIRY_MINUTES} minutes. If you didn't request this, ignore this message.`,
+    );
+  }
+
+  // Deliberately one generic error for every failure mode (no account, no OTP on
+  // record, expired, wrong code) — same reasoning as login()'s generic message, so a
+  // caller can't distinguish "wrong code" from "no such account" by the error shape.
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
+    const member = await this.protocolMembersService.findByPhoneNumberWithResetOtp(
+      resetPasswordDto.phone_number,
+    );
+
+    const invalidOtp = () => new BadRequestException('Invalid or expired code');
+
+    if (!member?.reset_otp_hash || !member.reset_otp_expires_at) {
+      throw invalidOtp();
+    }
+    if (member.reset_otp_expires_at.getTime() < Date.now()) {
+      throw invalidOtp();
+    }
+
+    const otpMatches = await bcrypt.compare(resetPasswordDto.otp, member.reset_otp_hash);
+    if (!otpMatches) {
+      throw invalidOtp();
+    }
+
+    const password_hash = await bcrypt.hash(resetPasswordDto.new_password, BCRYPT_SALT_ROUNDS);
+    await this.protocolMembersService.updatePassword(member._id.toString(), password_hash);
+    await this.protocolMembersService.clearResetOtp(member._id.toString());
   }
 
   private toSafeMember(member: {

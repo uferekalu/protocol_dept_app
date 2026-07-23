@@ -170,6 +170,74 @@ describe('ProtocolMembersService', () => {
     await expect(service.findOne('missing')).rejects.toThrow(NotFoundException);
   });
 
+  describe('findByPhoneNumber', () => {
+    it('returns null rather than throwing when no member matches', async () => {
+      model.findOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+
+      const result = await service.findByPhoneNumber('+2340000000000');
+
+      expect(model.findOne).toHaveBeenCalledWith({ phone_number: '+2340000000000' });
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findByPhoneNumberWithResetOtp', () => {
+    it('opts back into the reset-OTP fields via select', async () => {
+      const select = jest.fn().mockReturnValue({
+        exec: jest
+          .fn()
+          .mockResolvedValue({ ...mockMember, reset_otp_hash: 'hashed-otp' }),
+      });
+      model.findOne.mockReturnValue({ select });
+
+      const result = await service.findByPhoneNumberWithResetOtp('+2348022223333');
+
+      expect(model.findOne).toHaveBeenCalledWith({ phone_number: '+2348022223333' });
+      expect(select).toHaveBeenCalledWith('+reset_otp_hash +reset_otp_expires_at');
+      expect(result).toEqual({ ...mockMember, reset_otp_hash: 'hashed-otp' });
+    });
+  });
+
+  describe('setResetOtp', () => {
+    it('writes the hash and expiry directly', async () => {
+      model.findByIdAndUpdate.mockReturnValue({ exec: jest.fn().mockResolvedValue(mockMember) });
+      const expiresAt = new Date();
+
+      await service.setResetOtp('member-1', 'hashed-otp', expiresAt);
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith('member-1', {
+        reset_otp_hash: 'hashed-otp',
+        reset_otp_expires_at: expiresAt,
+      });
+    });
+
+    it('throws NotFoundException when the member does not exist', async () => {
+      model.findByIdAndUpdate.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+
+      await expect(
+        service.setResetOtp('missing', 'hashed-otp', new Date()),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('clearResetOtp', () => {
+    it('$unsets both reset-OTP fields', async () => {
+      model.findByIdAndUpdate.mockReturnValue({ exec: jest.fn().mockResolvedValue(mockMember) });
+
+      await service.clearResetOtp('member-1');
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith('member-1', {
+        $unset: { reset_otp_hash: 1, reset_otp_expires_at: 1 },
+      });
+    });
+
+    it('throws NotFoundException when the member does not exist', async () => {
+      model.findByIdAndUpdate.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+
+      await expect(service.clearResetOtp('missing')).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('update', () => {
     it('throws NotFoundException when updating a missing member', async () => {
       model.findByIdAndUpdate.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });

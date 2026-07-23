@@ -26,8 +26,10 @@ import type { ReportsStats } from '@/lib/types/report';
 import type {
   AuthenticatedProtocolMember,
   ChangePasswordInput,
+  ForgotPasswordInput,
   LoginInput,
   LoginResponse,
+  ResetPasswordInput,
   SignupInput,
 } from '@/lib/types/auth';
 import type { RootState } from './store';
@@ -83,6 +85,14 @@ export const api = createApi({
 
     changePassword: builder.mutation<void, ChangePasswordInput>({
       query: (body) => ({ url: '/auth/change-password', method: 'PATCH', body }),
+    }),
+
+    forgotPassword: builder.mutation<void, ForgotPasswordInput>({
+      query: (body) => ({ url: '/auth/forgot-password', method: 'POST', body }),
+    }),
+
+    resetPassword: builder.mutation<void, ResetPasswordInput>({
+      query: (body) => ({ url: '/auth/reset-password', method: 'POST', body }),
     }),
 
     getCurrentUser: builder.query<AuthenticatedProtocolMember, void>({
@@ -415,6 +425,8 @@ export const {
   useLoginMutation,
   useSignupMutation,
   useChangePasswordMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
   useGetCurrentUserQuery,
   useGetMinistersQuery,
   useGetMinisterQuery,

@@ -7,10 +7,12 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { ProtocolMembersModule } from '../protocol-members/protocol-members.module';
+import { TermiiModule } from '../../common/termii/termii.module';
 
 @Module({
   imports: [
     ProtocolMembersModule,
+    TermiiModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

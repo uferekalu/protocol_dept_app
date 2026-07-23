@@ -11,6 +11,8 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
@@ -54,5 +56,23 @@ export class AuthController {
   @ApiBadRequestResponse({ description: 'New password must be different from your current password' })
   changePassword(@Body() changePasswordDto: ChangePasswordDto, @CurrentUser() user: JwtPayload) {
     return this.authService.changePassword(user.sub, changePasswordDto);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Request a password-reset code by SMS — always returns success whether or not the phone number matches an account',
+  })
+  forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset your password using the SMS code from /auth/forgot-password' })
+  @ApiBadRequestResponse({ description: 'Invalid or expired code' })
+  resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 }
