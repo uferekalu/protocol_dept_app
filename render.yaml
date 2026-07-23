@@ -10,7 +10,10 @@ services:
     # ERESOLVE strictness rejects that even though it works fine in practice. See
     # backend/CLAUDE.md's stack list; this is a pre-existing repo-wide constraint, not
     # something specific to this deploy.
-    buildCommand: npm install --legacy-peer-deps && npm run build
+    # --include=dev is required because NODE_ENV=production (set below) is already
+    # present during the build step, and npm skips devDependencies under that env by
+    # default — but @nestjs/cli (the `nest build` command itself) lives there.
+    buildCommand: npm install --legacy-peer-deps --include=dev && npm run build
     startCommand: npm run start:prod
     healthCheckPath: /api/health
     envVars:
