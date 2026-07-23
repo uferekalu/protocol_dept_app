@@ -12,7 +12,14 @@ import { UpdateAssignmentDto } from './dto/update-assignment.dto';
 import { UpdateAssignmentStatusDto } from './dto/update-assignment-status.dto';
 import { InvitationsService } from '../invitations/invitations.service';
 import { ProtocolMembersService } from '../protocol-members/protocol-members.service';
-import { AssignmentStatus, VALID_ASSIGNMENT_TRANSITIONS } from '../../common/enums';
+import { MinistersService } from '../ministers/ministers.service';
+import { TermiiService } from '../../common/termii/termii.service';
+import {
+  ASSIGNMENT_TYPE_LABELS,
+  AssignmentStatus,
+  VALID_ASSIGNMENT_TRANSITIONS,
+} from '../../common/enums';
+import { InvitationDocument } from '../invitations/schemas/invitation.schema';
 
 // Mongo/Mongoose duplicate-key error code, raised when a `unique` index is violated.
 const MONGO_DUPLICATE_KEY_ERROR = 11000;
@@ -23,6 +30,8 @@ export class AssignmentsService {
     @InjectModel(Assignment.name) private assignmentModel: Model<AssignmentDocument>,
     private invitationsService: InvitationsService,
     private protocolMembersService: ProtocolMembersService,
+    private ministersService: MinistersService,
+    private termiiService: TermiiService,
   ) {}
 
   async create(createAssignmentDto: CreateAssignmentDto): Promise<AssignmentDocument> {
@@ -52,14 +61,49 @@ export class AssignmentsService {
       );
     }
 
+    let assignment: AssignmentDocument;
     try {
-      return await this.assignmentModel.create({
+      assignment = await this.assignmentModel.create({
         ...createAssignmentDto,
         status: AssignmentStatus.PENDING,
       });
     } catch (error) {
       throw this.translateDuplicateKeyError(error, createAssignmentDto.assignment_type);
     }
+
+    // Best-effort — see notifyAssignment()'s comment. A notification failure must
+    // never fail assignment creation itself.
+    try {
+      await this.notifyAssignment(assignment, invitation);
+    } catch {
+      // swallowed deliberately
+    }
+
+    return assignment;
+  }
+
+  // TermiiService.sendSms() already never throws on a delivery failure — this method's
+  // own try/catch at the call site above is defense in depth for the lookups here
+  // (protocol member / minister), which in practice can't fail since both ids were just
+  // validated a few lines up in create(), but a notification is never worth risking the
+  // assignment itself over.
+  private async notifyAssignment(
+    assignment: AssignmentDocument,
+    invitation: InvitationDocument,
+  ): Promise<void> {
+    const [member, minister] = await Promise.all([
+      this.protocolMembersService.findOne(assignment.protocol_member_id.toString()),
+      this.ministersService.findOne(invitation.minister_id.toString()),
+    ]);
+
+    const label = ASSIGNMENT_TYPE_LABELS[assignment.assignment_type];
+    const when = new Date(assignment.scheduled_time).toLocaleString('en-NG', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+    const message = `Hi ${member.full_name}, you've been assigned: ${label} for ${minister.title} ${minister.full_name} on ${when}. Check the Protocol app for details.`;
+
+    await this.termiiService.sendSms(member.phone_number, message);
   }
 
   findAll(): Promise<AssignmentDocument[]> {

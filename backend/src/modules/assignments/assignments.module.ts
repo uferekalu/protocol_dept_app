@@ -7,12 +7,16 @@ import { AssignmentsService } from './assignments.service';
 import { Assignment, AssignmentSchema } from './schemas/assignment.schema';
 import { InvitationsModule } from '../invitations/invitations.module';
 import { ProtocolMembersModule } from '../protocol-members/protocol-members.module';
+import { MinistersModule } from '../ministers/ministers.module';
+import { TermiiModule } from '../../common/termii/termii.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Assignment.name, schema: AssignmentSchema }]),
     InvitationsModule,
     ProtocolMembersModule,
+    MinistersModule,
+    TermiiModule,
   ],
   controllers: [
     AssignmentsController,

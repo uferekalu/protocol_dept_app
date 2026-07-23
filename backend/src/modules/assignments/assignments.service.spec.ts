@@ -5,14 +5,18 @@ import { AssignmentsService } from './assignments.service';
 import { Assignment } from './schemas/assignment.schema';
 import { InvitationsService } from '../invitations/invitations.service';
 import { ProtocolMembersService } from '../protocol-members/protocol-members.service';
+import { MinistersService } from '../ministers/ministers.service';
+import { TermiiService } from '../../common/termii/termii.service';
 import { AssignmentStatus, AssignmentType } from '../../common/enums';
 
 const mockInvitation = {
   _id: 'invitation-1',
+  minister_id: 'minister-1',
   arrival_date: new Date('2026-04-09'),
   departure_date: new Date('2026-04-14'),
 };
-const mockMember = { _id: 'member-1', full_name: 'Grace Adeyemi' };
+const mockMember = { _id: 'member-1', full_name: 'Grace Adeyemi', phone_number: '+2348022223333' };
+const mockMinister = { _id: 'minister-1', full_name: 'John Doe', title: 'Rev.' };
 
 const mockAssignment = {
   _id: 'assignment-1',
@@ -42,6 +46,8 @@ describe('AssignmentsService', () => {
   };
   let invitationsService: { findOne: jest.Mock };
   let protocolMembersService: { findOne: jest.Mock };
+  let ministersService: { findOne: jest.Mock };
+  let termiiService: { sendSms: jest.Mock };
 
   beforeEach(async () => {
     model = {
@@ -56,6 +62,8 @@ describe('AssignmentsService', () => {
 
     invitationsService = { findOne: jest.fn().mockResolvedValue(mockInvitation) };
     protocolMembersService = { findOne: jest.fn().mockResolvedValue(mockMember) };
+    ministersService = { findOne: jest.fn().mockResolvedValue(mockMinister) };
+    termiiService = { sendSms: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -63,6 +71,8 @@ describe('AssignmentsService', () => {
         { provide: getModelToken(Assignment.name), useValue: model },
         { provide: InvitationsService, useValue: invitationsService },
         { provide: ProtocolMembersService, useValue: protocolMembersService },
+        { provide: MinistersService, useValue: ministersService },
+        { provide: TermiiService, useValue: termiiService },
       ],
     }).compile();
 
@@ -138,6 +148,38 @@ describe('AssignmentsService', () => {
       model.create.mockRejectedValue({ code: 11000 });
 
       await expect(service.create(dto)).rejects.toThrow(ConflictException);
+    });
+
+    it('notifies the assigned member by SMS with the minister and leg details', async () => {
+      model.create.mockResolvedValue(mockAssignment);
+
+      await service.create(dto);
+
+      expect(ministersService.findOne).toHaveBeenCalledWith('minister-1');
+      expect(termiiService.sendSms).toHaveBeenCalledWith(
+        '+2348022223333',
+        expect.stringContaining('Grace Adeyemi'),
+      );
+      expect(termiiService.sendSms.mock.calls[0][1]).toContain('Airport Pickup');
+      expect(termiiService.sendSms.mock.calls[0][1]).toContain('Rev. John Doe');
+    });
+
+    it('still returns the created assignment even when the notification lookup fails', async () => {
+      model.create.mockResolvedValue(mockAssignment);
+      ministersService.findOne.mockRejectedValue(new Error('minister lookup blew up'));
+
+      const result = await service.create(dto);
+
+      expect(result).toEqual(mockAssignment);
+    });
+
+    it('still returns the created assignment even when the SMS send rejects', async () => {
+      model.create.mockResolvedValue(mockAssignment);
+      termiiService.sendSms.mockRejectedValue(new Error('network error'));
+
+      const result = await service.create(dto);
+
+      expect(result).toEqual(mockAssignment);
     });
   });
 
