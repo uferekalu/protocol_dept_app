@@ -226,6 +226,52 @@ describe('ProtocolMembersService', () => {
     });
   });
 
+  describe('setPhoto', () => {
+    it('writes the given secure_url directly to image_url', async () => {
+      model.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ ...mockMember, image_url: 'https://res.cloudinary.com/photo.jpg' }),
+      });
+
+      await service.setPhoto('member-1', 'https://res.cloudinary.com/photo.jpg');
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'member-1',
+        { image_url: 'https://res.cloudinary.com/photo.jpg' },
+        { new: true },
+      );
+    });
+
+    it('throws NotFoundException when the member does not exist', async () => {
+      model.findByIdAndUpdate.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+
+      await expect(service.setPhoto('missing', 'https://res.cloudinary.com/photo.jpg')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('removePhoto', () => {
+    it('$unsets image_url rather than setting it to a falsy value', async () => {
+      model.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockMember),
+      });
+
+      await service.removePhoto('member-1');
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'member-1',
+        { $unset: { image_url: 1 } },
+        { new: true },
+      );
+    });
+
+    it('throws NotFoundException when the member does not exist', async () => {
+      model.findByIdAndUpdate.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+
+      await expect(service.removePhoto('missing')).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('updatePassword', () => {
     it('writes the given hash directly, the only path allowed to touch password_hash', async () => {
       model.findByIdAndUpdate.mockReturnValue({ exec: jest.fn().mockResolvedValue(mockMember) });
