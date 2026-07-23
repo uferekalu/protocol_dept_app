@@ -50,6 +50,18 @@ export enum AssignmentType {
   DEPARTURE_DROP_OFF = 'DEPARTURE_DROP_OFF',
 }
 
+// Plain-ASCII labels for SMS notifications (AssignmentsService) — deliberately not the
+// same "→"-using labels frontend/lib/constants/assignment.ts renders in the UI, since a
+// non-GSM-7 character in an SMS body forces the whole message onto the pricier/shorter
+// UCS-2 encoding.
+export const ASSIGNMENT_TYPE_LABELS: Record<AssignmentType, string> = {
+  [AssignmentType.AIRPORT_PICKUP]: 'Airport Pickup',
+  [AssignmentType.DROP_TO_HOTEL]: 'Drop to Hotel',
+  [AssignmentType.HOTEL_TO_VENUE]: 'Hotel to Venue',
+  [AssignmentType.VENUE_TO_HOTEL]: 'Venue to Hotel',
+  [AssignmentType.DEPARTURE_DROP_OFF]: 'Departure Drop-off',
+};
+
 export enum AssignmentStatus {
   PENDING = 'PENDING',
   IN_PROGRESS = 'IN_PROGRESS',
