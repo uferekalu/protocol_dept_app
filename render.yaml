@@ -5,7 +5,12 @@ services:
     plan: free
     region: oregon
     rootDir: backend
-    buildCommand: npm install && npm run build
+    # --legacy-peer-deps matches local dev: @nestjs/swagger@8.1.1 only declares peer
+    # support for @nestjs/common ^9||^10, but this project is on ^11 — npm's default
+    # ERESOLVE strictness rejects that even though it works fine in practice. See
+    # backend/CLAUDE.md's stack list; this is a pre-existing repo-wide constraint, not
+    # something specific to this deploy.
+    buildCommand: npm install --legacy-peer-deps && npm run build
     startCommand: npm run start:prod
     healthCheckPath: /api/health
     envVars:
