@@ -50,6 +50,28 @@ export const changePasswordFormSchema = z
 
 export type ChangePasswordFormValues = z.infer<typeof changePasswordFormSchema>;
 
+// /forgot-password step 1 — mirrors backend/src/modules/auth/dto/forgot-password.dto.ts.
+export const forgotPasswordFormSchema = z.object({
+  phone_number: z.string().min(1, 'Phone number is required'),
+});
+
+export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordFormSchema>;
+
+// /forgot-password step 2 — mirrors backend/src/modules/auth/dto/reset-password.dto.ts.
+// phone_number isn't a field here (carried over from step 1), just otp + new password.
+export const resetPasswordFormSchema = z
+  .object({
+    otp: z.string().length(6, 'Enter the 6-digit code'),
+    new_password: newPasswordField,
+    confirm_password: z.string().min(1, 'Please confirm your new password'),
+  })
+  .refine((data) => data.new_password === data.confirm_password, {
+    message: 'Passwords do not match',
+    path: ['confirm_password'],
+  });
+
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>;
+
 // /team/[id] self-edit — full_name/phone_number required, email optional. No password
 // field — that's the dedicated /change-password page now, not this form.
 export const profileFormSchema = z.object({

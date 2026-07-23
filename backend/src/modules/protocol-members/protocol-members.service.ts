@@ -69,6 +69,46 @@ export class ProtocolMembersService {
     return this.protocolMemberModel.findById(id).select('+password_hash').exec();
   }
 
+  // Used only by AuthService.forgotPassword() to check whether an account exists for
+  // the given phone number before generating/sending an OTP — deliberately returns
+  // null rather than throwing, so the caller can respond identically either way and
+  // never reveal whether a phone number has an account.
+  findByPhoneNumber(phoneNumber: string): Promise<ProtocolMemberDocument | null> {
+    return this.protocolMemberModel.findOne({ phone_number: phoneNumber }).exec();
+  }
+
+  // Used only by AuthService.resetPassword() — same select:false opt-in pattern as
+  // findByPhoneNumberWithPassword(), scoped to the reset-OTP fields instead.
+  findByPhoneNumberWithResetOtp(phoneNumber: string): Promise<ProtocolMemberDocument | null> {
+    return this.protocolMemberModel
+      .findOne({ phone_number: phoneNumber })
+      .select('+reset_otp_hash +reset_otp_expires_at')
+      .exec();
+  }
+
+  // The only path allowed to write reset_otp_hash/reset_otp_expires_at — see
+  // AuthService.forgotPassword(). A fresh call always overwrites any prior unused OTP,
+  // so only the most recently requested code is ever valid.
+  async setResetOtp(id: string, otpHash: string, expiresAt: Date): Promise<void> {
+    const result = await this.protocolMemberModel
+      .findByIdAndUpdate(id, { reset_otp_hash: otpHash, reset_otp_expires_at: expiresAt })
+      .exec();
+    if (!result) {
+      throw new NotFoundException(`Protocol member ${id} not found`);
+    }
+  }
+
+  // Called once an OTP has been consumed (or superseded) — see
+  // AuthService.resetPassword() — so a captured/guessed code is never replayable.
+  async clearResetOtp(id: string): Promise<void> {
+    const result = await this.protocolMemberModel
+      .findByIdAndUpdate(id, { $unset: { reset_otp_hash: 1, reset_otp_expires_at: 1 } })
+      .exec();
+    if (!result) {
+      throw new NotFoundException(`Protocol member ${id} not found`);
+    }
+  }
+
   async findOne(id: string): Promise<ProtocolMemberDocument> {
     const member = await this.protocolMemberModel.findById(id).exec();
     if (!member) {
