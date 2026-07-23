@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: protocol-dept-backend
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: JWT_SECRET
+        generateValue: true
+      # Secrets below are prompted for once during the Blueprint's initial creation
+      # flow in the Render Dashboard, then left alone by future render.yaml syncs —
+      # never committed here. See backend/.env.example for what each one is for.
+      - key: MONGODB_URI
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: TERMII_API_KEY
+        sync: false
+      - key: TERMII_BASE_URL
+        value: https://v4.api.termii.com
+      - key: TERMII_SENDER_ID
+        value: Termii
+      - key: TERMII_CHANNEL
+        value: generic
