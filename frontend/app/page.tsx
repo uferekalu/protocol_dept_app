@@ -4,6 +4,7 @@ import { Users, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useGetCurrentlyHostingQuery } from '@/lib/redux/api';
 import { InvitationCard } from '@/components/invitation-card';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -22,9 +23,7 @@ export default function Home() {
           </p>
         </div>
         {!isLoading && !isError && invitations && invitations.length > 0 && (
-          <span className="text-label rounded-full bg-primary/10 px-3 py-1 text-primary">
-            {invitations.length} hosted
-          </span>
+          <Badge>{invitations.length} hosted</Badge>
         )}
       </div>
 

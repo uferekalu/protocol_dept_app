@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, ChevronRight, Users } from 'lucide-react';
 import { useGetProtocolMembersQuery } from '@/lib/redux/api';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
 import { PROTOCOL_MEMBER_ROLE_LABELS } from '@/lib/constants/protocol-member';
+import type { ProtocolMember } from '@/lib/types/protocol-member';
 import {
   Table,
   TableBody,
@@ -68,11 +70,20 @@ export default function TeamPage() {
 
       {!isLoading && !isError && members && members.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-border">
-          <Table>
+          {/* Mobile: a flex-based row list that wraps/truncates naturally instead of
+              forcing a table's fixed columns into a narrow viewport (that combination
+              was producing an unwanted horizontal scrollbar on phones). */}
+          <div className="sm:hidden">
+            {members.map((member) => (
+              <MemberRow key={member._id} member={member} onOpen={router.push} />
+            ))}
+          </div>
+
+          <Table className="hidden sm:table">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead>Name</TableHead>
-                <TableHead className="hidden sm:table-cell">Phone</TableHead>
+                <TableHead>Phone</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead className="w-8" />
               </TableRow>
@@ -87,27 +98,18 @@ export default function TeamPage() {
                   <TableCell className="whitespace-normal">
                     <div className="flex items-center gap-3">
                       <Avatar imageUrl={member.image_url} name={member.full_name} size="sm" />
-                      <div>
-                        <Link
-                          href={`/team/${member._id}`}
-                          className="font-medium text-foreground hover:text-primary hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {member.full_name}
-                        </Link>
-                        <p className="text-caption text-muted-foreground sm:hidden">
-                          {member.phone_number}
-                        </p>
-                      </div>
+                      <Link
+                        href={`/team/${member._id}`}
+                        className="font-medium text-foreground hover:text-primary hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {member.full_name}
+                      </Link>
                     </div>
                   </TableCell>
-                  <TableCell className="hidden text-muted-foreground sm:table-cell">
-                    {member.phone_number}
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">{member.phone_number}</TableCell>
                   <TableCell>
-                    <span className="text-label rounded-full bg-primary/10 px-2.5 py-1 text-primary">
-                      {PROTOCOL_MEMBER_ROLE_LABELS[member.role]}
-                    </span>
+                    <Badge>{PROTOCOL_MEMBER_ROLE_LABELS[member.role]}</Badge>
                   </TableCell>
                   <TableCell>
                     <ChevronRight className="size-4 text-muted-foreground" />
@@ -119,6 +121,29 @@ export default function TeamPage() {
         </div>
       )}
     </main>
+  );
+}
+
+function MemberRow({
+  member,
+  onOpen,
+}: {
+  member: ProtocolMember;
+  onOpen: (href: string) => void;
+}) {
+  return (
+    <div
+      className="flex cursor-pointer items-center gap-3 border-b border-border p-3 last:border-0 hover:bg-muted/50"
+      onClick={() => onOpen(`/team/${member._id}`)}
+    >
+      <Avatar imageUrl={member.image_url} name={member.full_name} size="sm" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium text-foreground">{member.full_name}</p>
+        <p className="text-caption truncate text-muted-foreground">{member.phone_number}</p>
+      </div>
+      <Badge className="shrink-0">{PROTOCOL_MEMBER_ROLE_LABELS[member.role]}</Badge>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+    </div>
   );
 }
 

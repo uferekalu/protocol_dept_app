@@ -8,9 +8,14 @@ import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { useGetAssignmentsByProtocolMemberQuery, useGetCurrentlyHostingQuery } from '@/lib/redux/api';
 import { AssignmentStatusActions } from '@/components/assignment-status-actions';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ASSIGNMENT_STATUS_LABELS, ASSIGNMENT_TYPE_LABELS } from '@/lib/constants/assignment';
+import {
+  ASSIGNMENT_STATUS_BADGE_VARIANT,
+  ASSIGNMENT_STATUS_LABELS,
+  ASSIGNMENT_TYPE_LABELS,
+} from '@/lib/constants/assignment';
 import type { Assignment } from '@/lib/types/assignment';
 import type { PopulatedInvitation } from '@/lib/types/invitation';
 
@@ -155,9 +160,9 @@ function AssignmentTaskCard({
               : 'Invitation no longer active'}
           </p>
         </div>
-        <span className="text-label shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-primary">
+        <Badge variant={ASSIGNMENT_STATUS_BADGE_VARIANT[assignment.status]} className="shrink-0">
           {ASSIGNMENT_STATUS_LABELS[assignment.status]}
-        </span>
+        </Badge>
       </div>
 
       <p className="text-body-sm mt-2 text-muted-foreground">

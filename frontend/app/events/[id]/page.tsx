@@ -25,6 +25,7 @@ import { isElevatedRole } from '@/lib/constants/protocol-member';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
+import { Badge } from '@/components/ui/badge';
 import { EventFormDialog } from '@/components/event-form-dialog';
 import {
   AlertDialog,
@@ -188,9 +189,7 @@ export default function EventDetailPage() {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-label rounded-full bg-primary/10 px-3 py-1 text-primary">
-                      {STATUS_LABELS[invitation.status]}
-                    </span>
+                    <Badge>{STATUS_LABELS[invitation.status]}</Badge>
                     <ChevronRight className="size-4 text-muted-foreground" />
                   </div>
                 </Link>

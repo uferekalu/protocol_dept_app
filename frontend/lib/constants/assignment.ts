@@ -29,6 +29,17 @@ export const ASSIGNMENT_STATUS_LABELS: Record<AssignmentStatus, string> = {
   COMPLETED: 'Completed',
 };
 
+// Maps to Badge's status color variants (components/ui/badge.tsx), themselves backed
+// by the --status-pending/-in-progress/-complete tokens in globals.css.
+export const ASSIGNMENT_STATUS_BADGE_VARIANT: Record<
+  AssignmentStatus,
+  'pending' | 'in-progress' | 'complete'
+> = {
+  PENDING: 'pending',
+  IN_PROGRESS: 'in-progress',
+  COMPLETED: 'complete',
+};
+
 // COMPLETED is terminal — once a leg is marked done, it's not reopened.
 export const VALID_ASSIGNMENT_TRANSITIONS: Record<AssignmentStatus, AssignmentStatus[]> = {
   PENDING: ['IN_PROGRESS', 'COMPLETED'],
