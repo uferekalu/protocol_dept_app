@@ -10,7 +10,12 @@ import { StatusLogsService } from '../status-logs/status-logs.service';
 import { InvitationStatus } from '../../common/enums';
 
 const mockMinister = { _id: 'minister-1', full_name: 'John Adebayo' };
-const mockEvent = { _id: 'event-1', name: '2026 Easter Revival' };
+const mockEvent = {
+  _id: 'event-1',
+  name: '2026 Easter Revival',
+  start_date: new Date('2026-04-01'),
+  end_date: new Date('2026-04-30'),
+};
 const mockMember = { _id: 'member-1', full_name: 'Grace Adeyemi' };
 
 const mockInvitation = {
@@ -148,6 +153,28 @@ describe('InvitationsService', () => {
         service.create({ ...dto, preaching_dates: ['2026-04-20'] }),
       ).rejects.toThrow(BadRequestException);
       expect(model.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects when arrival_date is before the event start_date', async () => {
+      await expect(
+        service.create({ ...dto, arrival_date: '2026-03-25', departure_date: '2026-04-14' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(model.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects when departure_date is after the event end_date', async () => {
+      await expect(
+        service.create({ ...dto, arrival_date: '2026-04-09', departure_date: '2026-05-05' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(model.create).not.toHaveBeenCalled();
+    });
+
+    it('accepts a stay exactly matching the event boundaries', async () => {
+      model.create.mockResolvedValue(mockInvitation);
+
+      await service.create({ ...dto, arrival_date: '2026-04-01', departure_date: '2026-04-30' });
+
+      expect(model.create).toHaveBeenCalled();
     });
 
     it('rejects with ConflictException when the minister already has an invitation for this event', async () => {
@@ -291,6 +318,33 @@ describe('InvitationsService', () => {
     it('rejects when patching preaching_dates outside the effective stay window', async () => {
       await expect(
         service.update('invitation-1', { preaching_dates: ['2026-05-01'] }),
+      ).rejects.toThrow(BadRequestException);
+      expect(model.findByIdAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('rejects when patching departure_date past the existing event end_date', async () => {
+      await expect(
+        service.update('invitation-1', { departure_date: '2026-05-05' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(model.findByIdAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('re-validates the stay against the new event when event_id changes', async () => {
+      eventsService.findOne.mockImplementation((id: string) =>
+        id === 'event-2'
+          ? Promise.resolve({
+              _id: 'event-2',
+              name: 'A Narrower Event',
+              start_date: new Date('2026-04-10'),
+              end_date: new Date('2026-04-12'),
+            })
+          : Promise.resolve(mockEvent),
+      );
+
+      // mockInvitation's stay (04-09 to 04-14) no longer fits inside event-2's
+      // narrower window (04-10 to 04-12), even though no dates are being patched.
+      await expect(
+        service.update('invitation-1', { event_id: 'event-2' }),
       ).rejects.toThrow(BadRequestException);
       expect(model.findByIdAndUpdate).not.toHaveBeenCalled();
     });
