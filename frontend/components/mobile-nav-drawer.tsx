@@ -117,6 +117,7 @@ export function MobileNavDrawer() {
               key={link.href}
               href={link.href}
               aria-label={link.label}
+              onClick={() => setExpandedAndPersist(false)}
               className={cn(
                 'flex items-center gap-3 rounded-lg py-2.5 outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
                 expanded ? 'px-2.5' : 'justify-center',
