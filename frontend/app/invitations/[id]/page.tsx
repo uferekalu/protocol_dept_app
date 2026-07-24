@@ -16,6 +16,7 @@ import {
 } from '@/lib/redux/api';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { isElevatedRole } from '@/lib/constants/protocol-member';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
@@ -151,12 +152,9 @@ export default function InvitationDetailPage() {
                 <p className="text-label mb-1.5 text-muted-foreground">Preaching dates</p>
                 <div className="flex flex-wrap gap-1.5">
                   {invitation.preaching_dates.map((date) => (
-                    <span
-                      key={date}
-                      className="text-caption rounded-full bg-primary/10 px-2.5 py-1 text-primary"
-                    >
+                    <Badge key={date} size="sm">
                       {new Date(date).toLocaleDateString()}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               </div>

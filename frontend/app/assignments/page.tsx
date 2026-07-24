@@ -4,6 +4,7 @@ import { AlertTriangle, RefreshCw, Users } from 'lucide-react';
 import { useGetCurrentlyHostingQuery } from '@/lib/redux/api';
 import { InvitationAssignmentsCard } from '@/components/invitation-assignments-card';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RequireElevatedRole } from '@/components/require-elevated-role';
@@ -29,9 +30,7 @@ export default function AssignmentsPage() {
             </p>
           </div>
           {!isLoading && !isError && invitations && invitations.length > 0 && (
-            <span className="text-label rounded-full bg-primary/10 px-3 py-1 text-primary">
-              {invitations.length} hosted
-            </span>
+            <Badge>{invitations.length} hosted</Badge>
           )}
         </div>
 

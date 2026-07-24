@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, CalendarClock, ChevronRight, ScrollText, Trophy, Users } from 'lucide-react';
 import { useGetReportsHistoryQuery, useGetReportsStatsQuery } from '@/lib/redux/api';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
@@ -189,9 +190,7 @@ export default function ReportsPage() {
                     {new Date(invitation.departure_date).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <span className="text-label rounded-full bg-primary/10 px-2.5 py-1 text-primary">
-                      {STATUS_LABELS[invitation.status]}
-                    </span>
+                    <Badge>{STATUS_LABELS[invitation.status]}</Badge>
                   </TableCell>
                   <TableCell>
                     <ChevronRight className="size-4 text-muted-foreground" />
