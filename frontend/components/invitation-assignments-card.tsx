@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,7 +24,11 @@ import {
   useGetAssignmentsByInvitationQuery,
   useGetProtocolMembersQuery,
 } from '@/lib/redux/api';
-import { ASSIGNMENT_STATUS_LABELS, ASSIGNMENT_TYPE_LABELS } from '@/lib/constants/assignment';
+import {
+  ASSIGNMENT_STATUS_BADGE_VARIANT,
+  ASSIGNMENT_STATUS_LABELS,
+  ASSIGNMENT_TYPE_LABELS,
+} from '@/lib/constants/assignment';
 import type { PopulatedInvitation } from '@/lib/types/invitation';
 import type { Assignment } from '@/lib/types/assignment';
 
@@ -130,9 +135,9 @@ export function InvitationAssignmentsCard({ invitation }: { invitation: Populate
                   </div>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-label rounded-full bg-primary/10 px-2.5 py-0.5 text-primary">
+                  <Badge variant={ASSIGNMENT_STATUS_BADGE_VARIANT[assignment.status]}>
                     {ASSIGNMENT_STATUS_LABELS[assignment.status]}
-                  </span>
+                  </Badge>
                   <AssignmentStatusActions assignment={assignment} size="sm" />
                 </div>
               </div>
