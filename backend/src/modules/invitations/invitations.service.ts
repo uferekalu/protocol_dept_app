@@ -34,11 +34,17 @@ export class InvitationsService {
     // Referential integrity: a bad id 404s here instead of silently creating a
     // dangling reference.
     await this.ministersService.findOne(createInvitationDto.minister_id);
-    await this.eventsService.findOne(createInvitationDto.event_id);
+    const event = await this.eventsService.findOne(createInvitationDto.event_id);
 
     this.assertValidDateRange(
       createInvitationDto.arrival_date,
       createInvitationDto.departure_date,
+    );
+    this.assertStayWithinEvent(
+      createInvitationDto.arrival_date,
+      createInvitationDto.departure_date,
+      event.start_date,
+      event.end_date,
     );
     this.assertPreachingDatesWithinStay(
       createInvitationDto.preaching_dates ?? [],
@@ -157,15 +163,19 @@ export class InvitationsService {
     if (updateInvitationDto.minister_id) {
       await this.ministersService.findOne(updateInvitationDto.minister_id);
     }
-    if (updateInvitationDto.event_id) {
-      await this.eventsService.findOne(updateInvitationDto.event_id);
-    }
+    // Always fetched (not just when event_id changes) because arrival/departure_date
+    // are validated against it below regardless of which fields are actually being
+    // updated — a date-only edit still needs to be checked against the invitation's
+    // existing event.
+    const effectiveEventId = updateInvitationDto.event_id ?? existing.event_id.toString();
+    const event = await this.eventsService.findOne(effectiveEventId);
 
     const effectiveArrival =
       updateInvitationDto.arrival_date ?? existing.arrival_date.toISOString();
     const effectiveDeparture =
       updateInvitationDto.departure_date ?? existing.departure_date.toISOString();
     this.assertValidDateRange(effectiveArrival, effectiveDeparture);
+    this.assertStayWithinEvent(effectiveArrival, effectiveDeparture, event.start_date, event.end_date);
 
     const effectivePreachingDates =
       updateInvitationDto.preaching_dates ??
@@ -179,7 +189,6 @@ export class InvitationsService {
     if (updateInvitationDto.minister_id || updateInvitationDto.event_id) {
       const effectiveMinisterId =
         updateInvitationDto.minister_id ?? existing.minister_id.toString();
-      const effectiveEventId = updateInvitationDto.event_id ?? existing.event_id.toString();
       const conflict = await this.invitationModel
         .findOne({
           _id: { $ne: id },
@@ -282,6 +291,23 @@ export class InvitationsService {
   ): void {
     if (new Date(departureDate) < new Date(arrivalDate)) {
       throw new BadRequestException('departure_date must be on or after arrival_date');
+    }
+  }
+
+  private assertStayWithinEvent(
+    arrivalDate: string | Date,
+    departureDate: string | Date,
+    eventStartDate: Date,
+    eventEndDate: Date,
+  ): void {
+    const arrival = new Date(arrivalDate).getTime();
+    const departure = new Date(departureDate).getTime();
+    if (arrival < eventStartDate.getTime() || departure > eventEndDate.getTime()) {
+      throw new BadRequestException(
+        `Invitation stay (${new Date(arrivalDate).toISOString().slice(0, 10)} to ${new Date(departureDate).toISOString().slice(0, 10)}) must fall within the event's dates (${eventStartDate
+          .toISOString()
+          .slice(0, 10)} to ${eventEndDate.toISOString().slice(0, 10)})`,
+      );
     }
   }
 

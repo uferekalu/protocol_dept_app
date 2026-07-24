@@ -119,6 +119,24 @@ export function InvitationForm({ invitation, defaultMinisterId }: InvitationForm
     [events],
   );
 
+  // Not part of the zod schema (which is self-contained and has no access to the
+  // fetched events list) — a plain derived value instead, checked at submit time and
+  // shown inline, mirroring what the backend now enforces in
+  // InvitationsService.assertStayWithinEvent().
+  const selectedEvent = useMemo(
+    () => sortedEvents.find((e) => e._id === eventId),
+    [sortedEvents, eventId],
+  );
+  const eventDateError = useMemo(() => {
+    if (!selectedEvent || !arrivalDate || !departureDate) return undefined;
+    const eventStart = selectedEvent.start_date.slice(0, 10);
+    const eventEnd = selectedEvent.end_date.slice(0, 10);
+    if (arrivalDate < eventStart || departureDate > eventEnd) {
+      return `Stay must fall within the event's dates (${eventStart} to ${eventEnd})`;
+    }
+    return undefined;
+  }, [selectedEvent, arrivalDate, departureDate]);
+
   // Recompute live as dates change, per frontend/CLAUDE.md — the coordinator can still
   // hand-edit the field afterward; it isn't clobbered again until the dates change
   // once more.
@@ -131,6 +149,11 @@ export function InvitationForm({ invitation, defaultMinisterId }: InvitationForm
   }, [arrivalDate, departureDate]);
 
   async function onSubmit(values: InvitationFormValues) {
+    if (eventDateError) {
+      toast.error(eventDateError);
+      return;
+    }
+
     const payload = {
       minister_id: values.minister_id,
       event_id: values.event_id,
@@ -248,6 +271,7 @@ export function InvitationForm({ invitation, defaultMinisterId }: InvitationForm
             <Input type="number" min={1} {...register('number_of_days')} />
           </Field>
         </div>
+        {eventDateError && <p className="text-caption text-destructive">{eventDateError}</p>}
       </FormSection>
 
       <FormSection icon={Building2} title="Hotel" description="Where they'll be staying during the visit.">
